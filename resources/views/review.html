@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Perbaikan Silsilah Keluarga</title>
+  <style>
+    /* reset & base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #f4efe2;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #2f2718;
+      padding: 20px 12px;
+    }
+
+    .note {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      background: #fff8e6;
+      border: 1px solid #b9a06b;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #3d3222;
+    }
+
+    /* canvas utama */
+    .tree-canvas {
+      background: #f4efe2;
+      border-radius: 20px;
+      padding: 20px 10px;
+      overflow-x: auto;
+    }
+
+    .tree-canvas__inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: max-content;
+      margin: 0 auto;
+      padding: 20px 30px 50px;
+      position: relative;
+    }
+
+    /* ===== semua branch ===== */
+    .ancestor-branch,
+    .descendant-branch,
+    .child-branch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* ===== pair ===== */
+    .pair {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      gap: 0;
+    }
+    .pair.has-spouse {
+      gap: 28px;
+    }
+    .pair.has-spouse::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 28px;
+      height: 2px;
+      background: #b9a06b;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+    }
+
+    /* ===== garis vertikal penghubung (utuh, tidak putus) ===== */
+    .connector,
+    .tree-canvas__root-connector,
+    .children-connector {
+      width: 2px;
+      background: #b9a06b;
+      margin: 0 auto;
+      flex-shrink: 0;
+    }
+
+    .connector { height: 32px; }
+    .tree-canvas__root-connector { height: 32px; }
+    .children-connector { height: 32px; }
+
+    /* ===== ancestor row (horizontal) ===== */
+    .ancestors-row,
+    .tree-canvas__ancestors-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 80px;
+      position: relative;
+    }
+    .ancestors-row .ancestor-branch,
+    .tree-canvas__ancestors-row .ancestor-branch {
+      position: relative;
+    }
+
+    /* ===== children row ===== */
+    .children-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 40px;
+      position: relative;
+    }
+
+    /* ===== child branch dengan garis vertikal dari atas ===== */
+    .child-branch {
+      padding-top: 32px;
+      position: relative;
+    }
+    .child-branch::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 2px;
+      height: 32px;
+      background: #b9a06b;
+      transform: translateX(-1px);
+    }
+    /* garis horizontal antar anak (hanya jika lebih dari 1) */
+    .child-branch.is-first:not(.is-only)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 2px;
+      background: #b9a06b;
+    }
+    .child-branch.is-last:not(.is-only)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 50%;
+      width: 50%;
+      height: 2px;
+      background: #b9a06b;
+    }
+    .child-branch.is-first.is-last::after { display: none; }
+
+    /* ===== person card ===== */
+    .person-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      width: 140px;
+      min-height: 112px;
+      padding: 0.7rem 0.5rem 0.6rem;
+      background: #fbf7ef;
+      border: 1.5px solid #ddd2bd;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(60, 47, 27, 0.06);
+      transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .person-card:hover {
+      box-shadow: 0 6px 16px rgba(60, 47, 27, 0.16);
+      transform: translateY(-2px);
+      border-color: #a87f2e;
+    }
+    .person-card--root {
+      width: 160px;
+      min-height: 122px;
+      padding: 0.9rem 0.7rem 0.7rem;
+      border-width: 2px;
+      border-color: #a87f2e;
+      background: linear-gradient(180deg, #fffaf0 0%, #fbf3df 100%);
+      box-shadow: 0 0 0 4px rgba(168, 127, 46, 0.12), 0 6px 18px rgba(60, 47, 27, 0.14);
+    }
+    .person-card--deceased {
+      background: #f1ede4;
+      opacity: 0.85;
+    }
+    .person-card__avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 1rem; font-weight: 600;
+      color: #fff; flex-shrink: 0;
+    }
+    .is-male { background: linear-gradient(160deg, #5b7c9e, #3f5b78); }
+    .is-female { background: linear-gradient(160deg, #b3766f, #8a4f49); }
+    .person-card__name {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 0.88rem; font-weight: 600;
+      color: #2f2718; text-align: center; line-height: 1.2;
+      max-width: 122px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .person-card__nickname { font-size: 0.7rem; color: #8a7c5e; font-style: italic; margin: 0; }
+    .person-card__meta {
+      display: flex; gap: 0.3rem; font-size: 0.68rem; color: #6b5e44; align-items: center;
+    }
+    .person-card__meta .is-male { color: #3f5b78; background: none; }
+    .person-card__meta .is-female { color: #8a4f49; background: none; }
+    .person-card__tag--deceased {
+      font-size: 0.64rem; color: #6b5e44; background: #e7e0d1;
+      padding: 0.04rem 0.4rem; border-radius: 999px; margin: 0;
+    }
+    .person-card__action {
+      position: absolute; width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid #a87f2e; background: #fff; color: #a87f2e;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 10;
+      font-weight: 700; font-size: 14px; line-height: 1;
+    }
+    .person-card__action:hover { background: #a87f2e; color: #fff; }
+    .person-card__action--parent { top: -11px; left: 50%; transform: translateX(-50%); }
+    .person-card__action--spouse { right: -11px; top: 50%; transform: translateY(-50%); }
+    .person-card__action--child { bottom: -11px; left: 50%; transform: translateX(-50%); }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #2f2718; color: #fbf7ef; padding: 10px 18px;
+      border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.25s ease;
+      pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    /* responsive */
+    @media (max-width: 600px) {
+      .ancestors-row, .tree-canvas__ancestors-row { gap: 30px; }
+      .children-row { gap: 16px; }
+      .person-card { width: 110px; min-height: 96px; padding: 0.5rem 0.3rem; }
+      .person-card--root { width: 130px; min-height: 106px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="note">
+  🔹 <strong>Garis relasi utuh & terpusat</strong> — semua garis vertikal & horizontal tampil tanpa putus.<br>
+  🔹 Klik kartu mana pun → <strong>root berpindah</strong> dan seluruh pohon menyesuaian dengan posisi root di tengah.
+</div>
+
+<div class="tree-canvas">
+  <div class="tree-canvas__inner" id="treeRoot"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  (function() {
+    // ---------- DATA ----------
+    const nodes = {
+      46: {id:46, full_name:"Ayu Ashari", nickname:"Ayu", gender:"Perempuan", age:30, is_deceased:false, parent_ids:[51,52], spouse_ids:[48], child_ids:[49,50], actions:{can_add_spouse:false, can_add_parent:false, can_add_child:true}},
+      48: {id:48, full_name:"Nurdin Hidayat", nickname:"Encep", gender:"Laki-laki", age:32, is_deceased:false, parent_ids:[], spouse_ids:[46], child_ids:[49,50], actions:{can_add_spouse:true, can_add_parent:true, can_add_child:true}},
+      49: {id:49, full_name:"Felisha Marshanda", nickname:null, gender:"Perempuan", age:8, is_deceased:false, parent_ids:[48,46], spouse_ids:[], child_ids:[], actions:{can_add_spouse:false, can_add_parent:false, can_add_child:false}},
+      50: {id:50, full_name:"Felisha Mashanda", nickname:null, gender:"Perempuan", age:3, is_deceased:false, parent_ids:[48,46], spouse_ids:[], child_ids:[], actions:{can_add_spouse:false, can_add_parent:false, can_add_child:false}},
+      51: {id:51, full_name:"Teten Mahpudin", nickname:"Eten", gender:"Laki-laki", age:57, is_deceased:false, parent_ids:[53,54], spouse_ids:[52], child_ids:[45,46], actions:{can_add_spouse:true, can_add_parent:false, can_add_child:true}},
+      52: {id:52, full_name:"Yeti Hatuti", nickname:"Nyai", gender:"Perempuan", age:47, is_deceased:false, parent_ids:[56,57], spouse_ids:[51], child_ids:[45,46], actions:{can_add_spouse:false, can_add_parent:false, can_add_child:true}},
+      56: {id:56, full_name:"Abdul Kodir", nickname:null, gender:"Laki-laki", age:70, is_deceased:false, parent_ids:[], spouse_ids:[57], child_ids:[52], actions:{can_add_spouse:true, can_add_parent:true, can_add_child:true}},
+      57: {id:57, full_name:"Ma Haya", nickname:null, gender:"Perempuan", age:61, is_deceased:false, parent_ids:[], spouse_ids:[56], child_ids:[52], actions:{can_add_spouse:false, can_add_parent:true, can_add_child:true}},
+      45: {id:45, full_name:"Aldi Wahyudi", nickname:"Aldi", gender:"Laki-laki", age:27, is_deceased:false, parent_ids:[51,52], spouse_ids:[47], child_ids:[], actions:{can_add_spouse:true, can_add_parent:false, can_add_child:true}},
+      47: {id:47, full_name:"Mira Ulpah", nickname:"Nneg", gender:"Perempuan", age:25, is_deceased:false, parent_ids:[], spouse_ids:[45], child_ids:[], actions:{can_add_spouse:false, can_add_parent:true, can_add_child:true}},
+      53: {id:53, full_name:"Uta", nickname:null, gender:"Laki-laki", age:71, is_deceased:false, parent_ids:[55], spouse_ids:[54], child_ids:[51], actions:{can_add_spouse:true, can_add_parent:true, can_add_child:true}},
+      54: {id:54, full_name:"Imas", nickname:null, gender:"Perempuan", age:73, is_deceased:true, death_date:"2023-08-16", parent_ids:[], spouse_ids:[53], child_ids:[51], actions:{can_add_spouse:false, can_add_parent:true, can_add_child:true}},
+      55: {id:55, full_name:"Aki Uta", nickname:null, gender:"Laki-laki", age:95, is_deceased:false, parent_ids:[], spouse_ids:[], child_ids:[53], actions:{can_add_spouse:false, can_add_parent:false, can_add_child:true}}
+    };
+
+    let rootId = 46;
+
+    function getNode(id) { return nodes[id] || null; }
+
+    // unique parent branches (termasuk spouse)
+    function uniqueParentBranches(person) {
+      if (!person) return [];
+      const seen = new Set();
+      const result = [];
+      for (const pid of person.parent_ids) {
+        if (seen.has(pid)) continue;
+        result.push(pid);
+        seen.add(pid);
+        const n = getNode(pid);
+        if (n) {
+          for (const sid of n.spouse_ids) seen.add(sid);
+        }
+      }
+      return result;
+    }
+
+    // ------ RENDER HELPERS ------
+    function personCardHTML(p, opts = {}) {
+      if (!p) return '';
+      const genderClass = p.gender === 'Laki-laki' ? 'is-male' : 'is-female';
+      const genderSymbol = p.gender === 'Laki-laki' ? '♂' : '♀';
+      const initial = p.full_name.charAt(0).toUpperCase();
+      const rootClass = opts.isRoot ? ' person-card--root' : '';
+      const deceasedClass = p.is_deceased ? ' person-card--deceased' : '';
+
+      let actions = '';
+      if (opts.showAddParent) {
+        actions += `<button class="person-card__action person-card__action--parent" data-action="parent" data-id="${p.id}" title="Tambah Orang Tua">+</button>`;
+      }
+      if (opts.showAddSpouse) {
+        actions += `<button class="person-card__action person-card__action--spouse" data-action="spouse" data-id="${p.id}" title="Tambah Pasangan">+</button>`;
+      }
+      if (opts.showAddChild) {
+        actions += `<button class="person-card__action person-card__action--child" data-action="child" data-id="${p.id}" title="Tambah Anak">+</button>`;
+      }
+
+      let deceasedTag = '';
+      if (p.is_deceased && p.death_date) {
+        const d = new Date(p.death_date);
+        const formatted = d.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+        deceasedTag = `<p class="person-card__tag--deceased">† ${formatted}</p>`;
+      }
+
+      return `
+        <div class="person-card${rootClass}${deceasedClass}" data-person-id="${p.id}">
+          <div class="person-card__avatar ${genderClass}">${initial}</div>
+          <p class="person-card__name">${p.full_name}</p>
+          ${p.nickname ? `<p class="person-card__nickname">"${p.nickname}"</p>` : ''}
+          <div class="person-card__meta">
+            <span class="${genderClass}">${genderSymbol}</span>
+            <span>· ${p.age} th</span>
+          </div>
+          ${deceasedTag}
+          ${actions}
+        </div>
+      `;
+    }
+
+    function pairHTML(person, spouse, opts = {}) {
+      const hasSpouse = !!spouse;
+      const personHtml = personCardHTML(person, {
+        isRoot: opts.isRoot,
+        showAddParent: person.actions.can_add_parent,
+        showAddSpouse: !hasSpouse && person.actions.can_add_spouse,
+        showAddChild: opts.showChildButton ? person.actions.can_add_child : false,
+      });
+      const spouseHtml = hasSpouse ? personCardHTML(spouse, {
+        showAddParent: spouse.actions.can_add_parent,
+      }) : '';
+      return `<div class="pair${hasSpouse ? ' has-spouse' : ''}">${personHtml}${spouseHtml}</div>`;
+    }
+
+    // ------ ANCESTOR BRANCH (rekursif) ------
+    function ancestorBranchHTML(nodeId) {
+      const person = getNode(nodeId);
+      if (!person) return '';
+      const spouse = person.spouse_ids[0] !== undefined ? getNode(person.spouse_ids[0]) : null;
+
+      const fromPerson = uniqueParentBranches(person);
+      const fromSpouse = uniqueParentBranches(spouse);
+      const seen = new Set();
+      const branches = [];
+      for (const id of fromPerson.concat(fromSpouse)) {
+        if (!seen.has(id)) { seen.add(id); branches.push(id); }
+      }
+
+      let ancestorsHTML = '';
+      if (branches.length) {
+        ancestorsHTML = `
+          <div class="ancestors-section">
+            <div class="ancestors-row">
+              ${branches.map(bid => ancestorBranchHTML(bid)).join('')}
+            </div>
+            <div class="connector"></div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="ancestor-branch">
+          ${ancestorsHTML}
+          ${pairHTML(person, spouse)}
+        </div>
+      `;
+    }
+
+    // ------ DESCENDANT BRANCH (rekursif) ------
+    function descendantBranchHTML(nodeId) {
+      const person = getNode(nodeId);
+      if (!person) return '';
+      const spouse = person.spouse_ids[0] !== undefined ? getNode(person.spouse_ids[0]) : null;
+      const childIds = person.child_ids || [];
+
+      let childrenHTML = '';
+      if (childIds.length) {
+        childrenHTML = `
+          <div class="children-section">
+            <div class="children-connector"></div>
+            <div class="children-row">
+              ${childIds.map((cid, idx) => {
+                const classes = ['child-branch'];
+                if (idx === 0) classes.push('is-first');
+                if (idx === childIds.length - 1) classes.push('is-last');
+                if (childIds.length === 1) classes.push('is-only');
+                return `<div class="${classes.join(' ')}">${descendantBranchHTML(cid)}</div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="descendant-branch">
+          ${pairHTML(person, spouse, { showChildButton: true })}
+          ${childrenHTML}
+        </div>
+      `;
+    }
+
+    // ------ RENDER ROOT TREE ------
+    function renderTree() {
+      const root = getNode(rootId);
+      if (!root) return;
+      const rootSpouse = root.spouse_ids[0] !== undefined ? getNode(root.spouse_ids[0]) : null;
+      const rootParentBranches = uniqueParentBranches(root);
+      const childIds = root.child_ids || [];
+
+      let html = '';
+
+      // Ancestors
+      if (rootParentBranches.length) {
+        html += `
+          <div class="tree-canvas__ancestors-section">
+            <div class="tree-canvas__ancestors-row">
+              ${rootParentBranches.map(pid => ancestorBranchHTML(pid)).join('')}
+            </div>
+            <div class="tree-canvas__root-connector"></div>
+          </div>
+        `;
+      }
+
+      // Root pair
+      html += `<div>${pairHTML(root, rootSpouse, { isRoot: true, showChildButton: true })}</div>`;
+
+      // Children
+      if (childIds.length) {
+        html += `
+          <div class="children-section">
+            <div class="children-connector"></div>
+            <div class="children-row">
+              ${childIds.map((cid, idx) => {
+                const classes = ['child-branch'];
+                if (idx === 0) classes.push('is-first');
+                if (idx === childIds.length - 1) classes.push('is-last');
+                if (childIds.length === 1) classes.push('is-only');
+                return `<div class="${classes.join(' ')}">${descendantBranchHTML(cid)}</div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('treeRoot').innerHTML = html;
+      attachHandlers();
+    }
+
+    // ------ EVENT HANDLERS ------
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    function attachHandlers() {
+      // click card → pindah root
+      document.querySelectorAll('.person-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.person-card__action')) return;
+          const id = parseInt(this.dataset.personId, 10);
+          const p = getNode(id);
+          if (!p) return;
+          rootId = id;
+          showToast(`📍 Root berpindah ke: ${p.full_name}`);
+          renderTree();
+        });
+      });
+
+      // action buttons (simulasi)
+      document.querySelectorAll('.person-card__action').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const action = this.dataset.action;
+          const id = this.dataset.id;
+          const p = getNode(parseInt(id, 10));
+          if (p) showToast(`📋 Buka modal tambah ${action} untuk: ${p.full_name}`);
+        });
+      });
+    }
+
+    // initial render
+    renderTree();
+  })();
+</script>
+</body>
+</html>
