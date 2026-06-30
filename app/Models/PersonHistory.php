@@ -12,6 +12,7 @@ class PersonHistory extends Model
         'title',
         'description',
         'location',
+        'sort',
     ];
 
     protected $casts = [

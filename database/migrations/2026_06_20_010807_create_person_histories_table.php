@@ -25,6 +25,7 @@ return new class extends Migration
             $table->longText('description')->nullable();
 
             $table->string('location')->nullable();
+            $table->integer('sort')->nullable()->default(0);
 
             $table->timestamps();
         });

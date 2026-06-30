@@ -7,6 +7,7 @@ use App\Models\ParentChildRelation;
 use App\Models\Marriage;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class FamilyTreeService
 {
@@ -112,7 +113,9 @@ class FamilyTreeService
             'age' => $this->calculateAge($person),
             'is_deceased' => !is_null($person->death_date),
             'birth_place' => $person->birth_place,
-            'photo_path' => $person->photo_path,
+            'photo_path' => $person->photo_path
+            ? url(Storage::url($person->photo_path))
+            : null,
             
             'parent_ids' => array_filter([
                 $parents['father']['id'] ?? null,
@@ -329,7 +332,9 @@ class FamilyTreeService
             'age'          => $this->calculateAge($person),
             'is_deceased'  => !is_null($person->death_date),
             'birth_place'  => $person->birth_place,
-            'photo_path'   => $person->photo_path,
+            'photo_path' => $person->photo_path
+            ? url(Storage::url($person->photo_path))
+            : null,
         ];
     }
 

@@ -27,6 +27,8 @@ return new class extends Migration
                     'step'
                 ])->default('biological');
 
+            $table->integer('sort')->nullable()->default(0);
+
             $table->timestamps();
 
             $table->unique([

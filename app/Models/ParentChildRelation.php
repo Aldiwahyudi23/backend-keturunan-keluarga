@@ -10,6 +10,7 @@ class ParentChildRelation extends Model
         'parent_id',
         'child_id',
         'type',
+        'sort'
     ];
 
     protected $appends = [

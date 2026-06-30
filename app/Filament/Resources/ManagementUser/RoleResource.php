@@ -148,12 +148,6 @@ class RoleResource extends Resource
             'edit' => Pages\EditRole::route('/{record}/edit'),
         ];
     }
-
-
-    public static function getGloballySearchableAttributes(): array
-    {
-        return ['name', 'description'];
-    }
 }
 
 // Di dalam RolePolicy.php, tambahkan logika:
