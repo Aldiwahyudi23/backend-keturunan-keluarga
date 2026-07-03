@@ -24,11 +24,15 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Component;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Infolists;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -36,6 +40,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Grid as InfolistGrid;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PersonResource extends Resource
 {
@@ -59,18 +64,18 @@ class PersonResource extends Resource
                     ->icon('heroicon-o-user')
                     ->collapsible()
                     ->schema([
-                        Grid::make(2)
+                        Grid::make()
                             ->schema([
                                 TextInput::make('full_name')
                                     ->label('Nama Lengkap')
                                     ->required()
                                     ->maxLength(255)
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                                 
                                 TextInput::make('nickname')
                                     ->label('Nama Panggilan')
                                     ->maxLength(100)
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                                 
                                 ToggleButtons::make('gender')
                                     ->label('Jenis Kelamin')
@@ -88,78 +93,169 @@ class PersonResource extends Resource
                                         'female' => 'heroicon-o-user',
                                     ])
                                     ->inline()
-                                    ->columnSpan(2),
+                                    ->columnSpanFull(),
                                 
                                 TextInput::make('birth_place')
                                     ->label('Tempat Lahir')
                                     ->maxLength(255)
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                                 
-                                // Custom input untuk tanggal lahir (hanya tahun dan bulan)
-                                Grid::make(2)
+                                // Fieldset untuk tanggal lahir dengan pendekatan yang benar
+                                Fieldset::make('Tanggal Lahir')
                                     ->schema([
-                                        TextInput::make('birth_year')
-                                            ->label('Tahun Lahir')
-                                            ->numeric()
-                                            ->minValue(1900)
-                                            ->maxValue(date('Y'))
-                                            ->placeholder('contoh: 1998')
-                                            ->columnSpan(1)
-                                            ->default(fn ($record) => $record?->birth_date?->format('Y')),
-                                        
-                                        Select::make('birth_month')
-                                            ->label('Bulan Lahir')
-                                            ->options([
-                                                '01' => 'Januari',
-                                                '02' => 'Februari',
-                                                '03' => 'Maret',
-                                                '04' => 'April',
-                                                '05' => 'Mei',
-                                                '06' => 'Juni',
-                                                '07' => 'Juli',
-                                                '08' => 'Agustus',
-                                                '09' => 'September',
-                                                '10' => 'Oktober',
-                                                '11' => 'November',
-                                                '12' => 'Desember',
+                                        Grid::make()
+                                            ->schema([
+                                                Select::make('birth_month')
+                                                    ->label('Bulan')
+                                                    ->options([
+                                                        '01' => 'Januari',
+                                                        '02' => 'Februari',
+                                                        '03' => 'Maret',
+                                                        '04' => 'April',
+                                                        '05' => 'Mei',
+                                                        '06' => 'Juni',
+                                                        '07' => 'Juli',
+                                                        '08' => 'Agustus',
+                                                        '09' => 'September',
+                                                        '10' => 'Oktober',
+                                                        '11' => 'November',
+                                                        '12' => 'Desember',
+                                                    ])
+                                                    ->placeholder('Pilih Bulan')
+                                                    ->columnSpan([
+                                                        'default' => 1,
+                                                        'sm' => 1,
+                                                        'md' => 6,
+                                                        'lg' => 6,
+                                                        'xl' => 6,
+                                                    ])
+                                                    ->live()
+                                                    ->afterStateHydrated(function ($component, $state, $record) {
+                                                        // Isi nilai bulan dari data record saat edit
+                                                        if ($record && $record->birth_date) {
+                                                            $component->state(Carbon::parse($record->birth_date)->format('m'));
+                                                        }
+                                                    })
+                                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                                        $month = $state;
+                                                        $year = $get('birth_year');
+                                                        
+                                                        if ($month && $year) {
+                                                            $date = Carbon::createFromDate((int)$year, (int)$month, 1);
+                                                            $set('birth_date', $date->format('Y-m-d'));
+                                                        } elseif (!$month || !$year) {
+                                                            $set('birth_date', null);
+                                                        }
+                                                    }),
+                                                
+                                                TextInput::make('birth_year')
+                                                    ->label('Tahun')
+                                                    ->numeric()
+                                                    ->minValue(1900)
+                                                    ->maxValue(date('Y'))
+                                                    ->placeholder('contoh: 1998')
+                                                    ->columnSpan([
+                                                        'default' => 1,
+                                                        'sm' => 1,
+                                                        'md' => 6,
+                                                        'lg' => 6,
+                                                        'xl' => 6,
+                                                    ])
+                                                    ->rules(['nullable', 'integer', 'min:1900', 'max:' . date('Y')])
+                                                    ->live()
+                                                    ->afterStateHydrated(function ($component, $state, $record) {
+                                                        // Isi nilai tahun dari data record saat edit
+                                                        if ($record && $record->birth_date) {
+                                                            $component->state(Carbon::parse($record->birth_date)->format('Y'));
+                                                        }
+                                                    })
+                                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                                        $year = $state;
+                                                        $month = $get('birth_month');
+                                                        
+                                                        if ($month && $year) {
+                                                            $date = Carbon::createFromDate((int)$year, (int)$month, 1);
+                                                            $set('birth_date', $date->format('Y-m-d'));
+                                                        } elseif (!$month || !$year) {
+                                                            $set('birth_date', null);
+                                                        }
+                                                    }),
                                             ])
-                                            ->placeholder('Pilih Bulan')
-                                            ->columnSpan(1)
-                                            ->default(fn ($record) => $record?->birth_date?->format('m')),
+                                            ->columns([
+                                                'default' => 1,
+                                                'sm' => 1,
+                                                'md' => 2,
+                                                'lg' => 2,
+                                                'xl' => 2,
+                                            ]),
                                     ])
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
+                                
+                                // Hidden field untuk birth_date yang akan disimpan
+                                Forms\Components\Hidden::make('birth_date')
+                                    ->dehydrated(true),
                                 
                                 DatePicker::make('death_date')
                                     ->label('Tanggal Wafat')
                                     ->displayFormat('d/m/Y')
                                     ->after('birth_date')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                                 
-                                TextInput::make('person_code')
-                                    ->label('Kode Person')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->columnSpan(1),
+                                Grid::make()
+                                    ->schema([
+                                        TextInput::make('person_code')
+                                            ->label('Kode Person')
+                                            ->disabled()
+                                            ->dehydrated(false)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'sm' => 1,
+                                                'md' => 6,
+                                                'lg' => 6,
+                                                'xl' => 6,
+                                            ]),
+                                        
+                                        Placeholder::make('created_at')
+                                            ->label('Dibuat Pada')
+                                            ->content(fn ($record): string => $record ? $record->created_at->format('d/m/Y H:i') : '-')
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'sm' => 1,
+                                                'md' => 6,
+                                                'lg' => 6,
+                                                'xl' => 6,
+                                            ]),
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'sm' => 1,
+                                        'md' => 2,
+                                        'lg' => 2,
+                                        'xl' => 2,
+                                    ])
+                                    ->columnSpanFull(),
                                 
-                                Placeholder::make('created_at')
-                                    ->label('Dibuat Pada')
-                                    ->content(fn ($record): string => $record ? $record->created_at->format('d/m/Y H:i') : '-')
-                                    ->columnSpan(1),
+                                FileUpload::make('photo_path')
+                                    ->label('Foto')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->circleCropper()
+                                    ->directory('people-photos')
+                                    ->maxSize(2048)
+                                    ->columnSpanFull(),
+                                
+                                Textarea::make('bio')
+                                    ->label('Biografi / Catatan')
+                                    ->rows(4)
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns([
+                                'default' => 1,
+                                'sm' => 1,
+                                'md' => 2,
+                                'lg' => 2,
+                                'xl' => 2,
                             ]),
-                        
-                        FileUpload::make('photo_path')
-                            ->label('Foto')
-                            ->image()
-                            ->imageEditor()
-                            ->circleCropper()
-                            ->directory('people-photos')
-                            ->maxSize(2048)
-                            ->columnSpanFull(),
-                        
-                        Textarea::make('bio')
-                            ->label('Biografi / Catatan')
-                            ->rows(4)
-                            ->columnSpanFull(),
                     ]),
                 
                 Section::make('Riwayat Hidup')
@@ -171,24 +267,24 @@ class PersonResource extends Resource
                             ->relationship('histories')
                             ->label('Peristiwa Penting')
                             ->schema([
-                                Grid::make(2)
+                                Grid::make()
                                     ->schema([
                                         DatePicker::make('event_date')
                                             ->label('Tanggal Peristiwa')
                                             ->required()
                                             ->displayFormat('d/m/Y')
-                                            ->columnSpan(1),
+                                            ->columnSpanFull(),
                                         
                                         TextInput::make('title')
                                             ->label('Judul Peristiwa')
                                             ->required()
                                             ->maxLength(255)
-                                            ->columnSpan(1),
+                                            ->columnSpanFull(),
                                         
                                         TextInput::make('location')
                                             ->label('Lokasi')
                                             ->maxLength(255)
-                                            ->columnSpan(1),
+                                            ->columnSpanFull(),
                                         
                                         RichEditor::make('description')
                                             ->label('Deskripsi')
@@ -206,9 +302,16 @@ class PersonResource extends Resource
                                                 'alignCenter',
                                                 'alignRight',
                                             ])
-                                            ->columnSpan(1)
+                                            ->columnSpanFull()
                                             ->disableGrammarly()
                                             ->fileAttachmentsDirectory('history-attachments'),
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'sm' => 1,
+                                        'md' => 2,
+                                        'lg' => 2,
+                                        'xl' => 2,
                                     ]),
                             ])
                             ->columns(1)
@@ -231,6 +334,12 @@ class PersonResource extends Resource
                     ->circular()
                     ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&color=7F9CF5&background=EBF4FF')
                     ->size(40),
+
+                TextColumn::make('uuid')
+                    ->label('UUID')
+                    ->searchable()
+                    ->copyable()
+                    ->size('sm'),
                 
                 TextColumn::make('person_code')
                     ->label('Kode')
@@ -283,13 +392,14 @@ class PersonResource extends Resource
                         'male' => 'Laki-laki',
                         'female' => 'Perempuan',
                     ]),
+
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail'),
 
-                     // Action Download Kartu
                     Tables\Actions\Action::make('downloadCard')
                         ->label('Download Kartu')
                         ->icon('heroicon-o-identification')
@@ -299,7 +409,6 @@ class PersonResource extends Resource
                             return $service->generateCard($record, true);
                         }),
                     
-                    // Action Lihat Kartu (Stream)
                     Tables\Actions\Action::make('viewCard')
                         ->label('Lihat Kartu')
                         ->icon('heroicon-o-eye')
@@ -318,6 +427,8 @@ class PersonResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->label('Hapus Terpilih'),
+                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('full_name', 'asc');
@@ -327,12 +438,10 @@ class PersonResource extends Resource
     {
         return $infolist
             ->schema([
-                // Layout yang berbeda dengan form
                 InfolistSection::make('')
                     ->schema([
                         InfolistGrid::make(3)
                             ->schema([
-                                // Kolom 1: Foto
                                 InfolistGrid::make(1)
                                     ->schema([
                                         ImageEntry::make('photo_path')
@@ -345,7 +454,6 @@ class PersonResource extends Resource
                                     ])
                                     ->columnSpan(1),
                                 
-                                // Kolom 2: Informasi Utama
                                 InfolistGrid::make(1)
                                     ->schema([
                                         TextEntry::make('full_name')
@@ -369,7 +477,6 @@ class PersonResource extends Resource
                                     ])
                                     ->columnSpan(1),
                                 
-                                // Kolom 3: Detail Kelahiran & Kematian
                                 InfolistGrid::make(1)
                                     ->schema([
                                         TextEntry::make('birth_place')
@@ -391,7 +498,6 @@ class PersonResource extends Resource
                             ]),
                     ]),
                 
-                // Bio dengan style berbeda
                 InfolistSection::make('Biografi')
                     ->icon('heroicon-o-document-text')
                     ->schema([
@@ -403,7 +509,6 @@ class PersonResource extends Resource
                     ])
                     ->collapsible(),
                 
-                // Riwayat Hidup dengan tampilan timeline
                 InfolistSection::make('Riwayat Hidup')
                     ->icon('heroicon-o-clock')
                     ->schema([
@@ -412,7 +517,6 @@ class PersonResource extends Resource
                             ->schema([
                                 InfolistGrid::make(12)
                                     ->schema([
-                                        // Tanggal di kiri
                                         InfolistGrid::make(1)
                                             ->schema([
                                                 TextEntry::make('event_date')
@@ -424,7 +528,6 @@ class PersonResource extends Resource
                                             ])
                                             ->columnSpan(3),
                                         
-                                        // Garis pemisah
                                         InfolistGrid::make(1)
                                             ->schema([
                                                 TextEntry::make('divider')
@@ -434,7 +537,6 @@ class PersonResource extends Resource
                                             ])
                                             ->columnSpan(1),
                                         
-                                        // Konten di kanan
                                         InfolistGrid::make(1)
                                             ->schema([
                                                 TextEntry::make('title')
@@ -471,9 +573,6 @@ class PersonResource extends Resource
         ];
     }
 
-        /**
-     * Definisi kolom yang bisa dicari di global search
-     */
     public static function getGloballySearchableAttributes(): array
     {
         return [
@@ -484,17 +583,11 @@ class PersonResource extends Resource
         ];
     }
     
-    /**
-     * Tentukan label untuk hasil pencarian
-     */
     public static function getGlobalSearchResultTitle($record): string
     {
         return $record->full_name . ' (' . $record->person_code . ')';
     }
     
-    /**
-     * Tentukan detail yang ditampilkan di hasil pencarian
-     */
     public static function getGlobalSearchResultDetails($record): array
     {
         return [
@@ -505,20 +598,22 @@ class PersonResource extends Resource
         ];
     }
     
-    /**
-     * Tentukan URL yang dituju saat hasil pencarian diklik
-     */
     public static function getGlobalSearchResultUrl($record): string
     {
         return route('filament.admin.resources.people.view', $record);
     }
     
-    /**
-     * Tentukan urutan hasil pencarian
-     */
     public static function getGlobalSearchResultsQuery($query)
     {
         return $query->limit(5);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 
     public static function getPages(): array

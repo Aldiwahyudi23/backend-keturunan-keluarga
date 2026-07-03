@@ -13,4 +13,10 @@ class PersonCardController extends Controller
         $service = new PersonCardService();
         return $service->generateCard($person, true);
     }
+
+    public function view(Person $person)
+    {
+        $service = new PersonCardService();
+        return $service->generateCard($person, false);
+    }
 }

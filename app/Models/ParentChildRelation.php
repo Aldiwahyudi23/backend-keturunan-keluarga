@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+// use Spatie\EloquentSortable\SortableTrait;
 
 class ParentChildRelation extends Model
 {
+
+    // use SortableTrait;
+
     protected $fillable = [
         'parent_id',
         'child_id',
@@ -15,6 +19,21 @@ class ParentChildRelation extends Model
 
     protected $appends = [
         'type_label',
+    ];
+
+        /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'sort_order' => 'integer',
+    ];
+
+    // Konfigurasi sortable
+    public $sortable = [
+        'order_column_name' => 'sort', // nama kolom sorting
+        'sort_when_creating' => true,  // otomatis diurutkan saat create
     ];
 
     /*

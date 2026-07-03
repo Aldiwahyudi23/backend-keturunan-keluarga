@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 class Person extends Model
@@ -65,9 +66,78 @@ class Person extends Model
     |--------------------------------------------------------------------------
     */
 
+    /**
+    * Relasi ke parent biologis laki-laki (Ayah).
+    */
+    public function fatherRelation(): HasOne
+    {
+        return $this->hasOne(
+            ParentChildRelation::class,
+            'child_id',
+            'id'
+        )
+        ->where('type', 'biological')
+        ->whereHas('parent', function ($query) {
+            $query->where('gender', 'male');
+        });
+    }
+
+    /**
+     * Ambil data ayah biologis.
+     */
+    public function getFatherAttribute(): ?Person
+    {
+        return $this->fatherRelation?->parent;
+    }
+
+    /**
+     * Bin atau binti.
+     */
+    public function getNasabAttribute(): ?string
+    {
+        if (!$this->father) {
+            return null;
+        }
+
+        return match ($this->gender) {
+            'male' => 'bin',
+            'female' => 'binti',
+            default => null,
+        };
+    }
+
+    /**
+     * Nama lengkap beserta bin/binti.
+     *
+     * Contoh:
+     * Ahmad bin Abdullah
+     * Siti binti Abdullah
+     */
+    public function getFullNameWithNasabAttribute(): string
+    {
+        $father = $this->father;
+
+        if (!$father) {
+            return $this->full_name;
+        }
+
+        $connector = match ($this->gender) {
+            'male' => 'bin',
+            'female' => 'binti',
+            default => '',
+        };
+
+        if ($connector === '') {
+            return $this->full_name;
+        }
+
+        return "{$this->full_name} {$connector} {$father->full_name}";
+    }
+
     public function histories()
     {
-        return $this->hasMany(PersonHistory::class);
+        return $this->hasMany(PersonHistory::class)
+            ->orderBy('sort');
     }
 
     public function parentRelations()
@@ -126,14 +196,19 @@ class Person extends Model
      * Relasi utama untuk RelationManager "marriages".
      * Mengambil SEMUA data pernikahan dimana person ini berperan
      * sebagai suami ATAU sebagai istri.
-     *
-     * Catatan: relasi ini sengaja pakai orWhere (bukan whereHusbandId/whereWifeId
-     * terpisah) karena kita butuh SATU relationship method yang bisa dipakai
-     * langsung oleh Filament RelationManager ($relationship = 'marriages').
+     * 
+     * PERBAIKAN: Menggunakan union atau two separate relations
      */
-
     public function marriages(): HasMany
     {
+        // Gunakan pendekatan yang lebih baik dengan dua relasi terpisah
+        if ($this->gender === 'male') {
+            return $this->hasMany(Marriage::class, 'husband_id');
+        } elseif ($this->gender === 'female') {
+            return $this->hasMany(Marriage::class, 'wife_id');
+        }
+        
+        // Fallback: jika gender tidak ditentukan
         return $this->hasMany(Marriage::class, 'husband_id')
             ->where(function ($query) {
                 $query->where('husband_id', $this->id)
@@ -165,16 +240,59 @@ class Person extends Model
      */
     public function getSpousesAttribute(): Collection
     {
-        return $this->marriages->map(function (Marriage $marriage) {
-            return $marriage->husband_id === $this->id
-                ? $marriage->wife
-                : $marriage->husband;
-        });
+        // Jika gender laki-laki, ambil semua istri dari marriagesAsHusband
+        if ($this->gender === 'male') {
+            return $this->marriagesAsHusband()
+                ->with('wife')
+                ->get()
+                ->pluck('wife')
+                ->filter();
+        }
+        
+        // Jika gender perempuan, ambil semua suami dari marriagesAsWife
+        if ($this->gender === 'female') {
+            return $this->marriagesAsWife()
+                ->with('husband')
+                ->get()
+                ->pluck('husband')
+                ->filter();
+        }
+        
+        // Fallback: jika gender tidak ditentukan
+        return collect();
     }
 
     /**
-     * Helper: cek apakah person ini (khusus perempuan) sedang terikat
-     * pernikahan aktif (belum cerai). Dipakai untuk validasi di SpouseRelationManager.
+     * Helper: ambil pasangan aktif (belum cerai)
+     */
+    public function getActiveSpouseAttribute(): ?Person
+    {
+        // Jika gender laki-laki, cari istri aktif
+        if ($this->gender === 'male') {
+            $marriage = $this->marriagesAsHusband()
+                ->whereNull('divorce_date')
+                ->with('wife')
+                ->first();
+            
+            return $marriage ? $marriage->wife : null;
+        }
+        
+        // Jika gender perempuan, cari suami aktif
+        if ($this->gender === 'female') {
+            $marriage = $this->marriagesAsWife()
+                ->whereNull('divorce_date')
+                ->with('husband')
+                ->first();
+            
+            return $marriage ? $marriage->husband : null;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Helper: cek apakah person ini sedang terikat
+     * pernikahan aktif (belum cerai).
      */
     public function hasActiveMarriage(): bool
     {
@@ -182,6 +300,50 @@ class Person extends Model
             return $this->marriagesAsHusband()->whereNull('divorce_date')->exists();
         }
 
-        return $this->marriagesAsWife()->whereNull('divorce_date')->exists();
+        if ($this->gender === 'female') {
+            return $this->marriagesAsWife()->whereNull('divorce_date')->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Helper: ambil semua pasangan (termasuk yang sudah cerai)
+     */
+    public function getAllSpousesAttribute(): Collection
+    {
+        if ($this->gender === 'male') {
+            return $this->marriagesAsHusband()
+                ->with('wife')
+                ->get()
+                ->pluck('wife')
+                ->filter();
+        }
+        
+        if ($this->gender === 'female') {
+            return $this->marriagesAsWife()
+                ->with('husband')
+                ->get()
+                ->pluck('husband')
+                ->filter();
+        }
+        
+        return collect();
+    }
+
+    /**
+     * Helper: cek apakah seseorang memiliki pasangan (aktif atau tidak)
+     */
+    public function hasSpouse(): bool
+    {
+        if ($this->gender === 'male') {
+            return $this->marriagesAsHusband()->exists();
+        }
+
+        if ($this->gender === 'female') {
+            return $this->marriagesAsWife()->exists();
+        }
+
+        return false;
     }
 }

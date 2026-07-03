@@ -6,7 +6,18 @@ use App\Http\Controllers\API\VehicleController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\GenealogyController;
 
+use App\Http\Controllers\Api\BookController;
+use App\Http\Controllers\Api\BookPdfController;
+
+Route::get('/book/{uuid}', [BookController::class, 'show']);
+
+Route::get('/book/{uuid}/pdf', [BookPdfController::class, 'show']);
+
+Route::get('/book/{uuid}/download', [BookPdfController::class, 'download']);
+
+// ln -s /home/u516139464/domains/keturunan-api.keluargamahaya.com/public_html/storage/app/public /home/u516139464/domains/keturunan-api.keluargamahaya.com/public_html/public/storage
 Route::prefix('auth')
     ->group(function () {
 
@@ -67,6 +78,15 @@ Route::prefix('people')->group(function () {
         Route::put('{marriageId}', [FamilyTreeController::class, 'updateMarriage'])->middleware('auth:sanctum');
         Route::delete('{marriageId}', [FamilyTreeController::class, 'deleteMarriage'])->middleware('auth:sanctum');
     });
+
+    // Genealogy routes
+    //  * Contoh Penggunaan:
+    //  * GET /api/genealogy/550e8400-e29b-41d4-a716-446655440000
+    //  * GET /api/genealogy/550e8400-e29b-41d4-a716-446655440000?max_generations=3
+    //  * GET /api/genealogy/550e8400-e29b-41d4-a716-446655440000?format=text
+    //  */
+    Route::get('/genealogy/{uuid}', [GenealogyController::class, 'show'])->name('genealogy.show');
+
     // ============ Public ==================
     Route::get('/{identifier}/tree', [FamilyTreeController::class, 'getFamilyTree'])->middleware('optional.auth'); // GET /api/people/{identifier}/tree
     Route::get('/search', [FamilyTreeController::class, 'search']);           // GET    /api/people/search?keyword=...

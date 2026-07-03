@@ -466,6 +466,8 @@ class ChildRelationManager extends RelationManager
                         }),
                 ]),
             ])
+            ->defaultSort('sort', 'asc')
+            ->reorderable('sort')
             ->emptyStateHeading('Belum ada data anak')
             ->emptyStateDescription('Tambahkan anak dengan mengklik tombol "Tambah Anak" di atas')
             ->emptyStateIcon('heroicon-o-user-plus');

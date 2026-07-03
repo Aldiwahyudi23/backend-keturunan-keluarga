@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Person;
 use App\Models\ParentChildRelation;
 use App\Models\Marriage;
+use App\Models\PersonHistory;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -43,6 +44,8 @@ class FamilyTreeService
 
             'can_add_self' => $this->isAuthenticated(),
 
+            'person_histories' => $this->getPersonHistories($person->id),
+
             'nodes' => $formattedNodes,
         ];
     }
@@ -66,7 +69,8 @@ class FamilyTreeService
         $nodes[$personId] = $person;
 
         // 1. Ambil pasangan (spouse) dari person ini (level yang sama)
-        $spouses = $this->getSpouses($personId);
+        // HANYA pasangan yang masih menikah (belum cerai)
+        $spouses = $this->getActiveSpouses($personId);
         foreach ($spouses as $spouse) {
             if (!isset($visited[$spouse['id']])) {
                 $this->collectNodes($spouse['id'], $nodes, $visited, $maxLevel, $currentLevel);
@@ -96,7 +100,7 @@ class FamilyTreeService
     private function formatNodeWithRelationsAndActions(Person $person): array
     {
         $parents = $this->getParentsData($person->id);
-        $spouses = $this->getSpouses($person->id);
+        $spouses = $this->getActiveSpouses($person->id); // Hanya pasangan aktif
         $children = $this->getChildren($person->id);
         $isAuthenticated = $this->isAuthenticated();
 
@@ -143,22 +147,40 @@ class FamilyTreeService
 
     /**
      * Get children - Ambil semua anak langsung dari relasi
+     * DURUTKAN berdasarkan kolom 'sort' di ParentChildRelation
      */
     private function getChildren(int $personId): array
     {
-        $childIds = ParentChildRelation::where('parent_id', $personId)
-            ->pluck('child_id')
-            ->unique();
+        $childRelations = ParentChildRelation::where('parent_id', $personId)
+            ->orderBy('sort', 'asc') // Urutkan berdasarkan sort
+            ->get();
 
-        if ($childIds->isEmpty()) {
+        if ($childRelations->isEmpty()) {
             return [];
         }
 
-        return Person::whereIn('id', $childIds)
+        $childIds = $childRelations->pluck('child_id')->unique();
+        
+        // Ambil data person dan tambahkan informasi sort
+        $children = Person::whereIn('id', $childIds)
             ->get()
-            ->map(fn (Person $c) => $this->formatPersonCompact($c))
-            ->values()
-            ->toArray();
+            ->keyBy('id');
+
+        // Format dengan urutan sesuai sort
+        $result = [];
+        foreach ($childRelations as $relation) {
+            $child = $children->get($relation->child_id);
+            if ($child) {
+                $formattedChild = $this->formatPersonCompact($child);
+                // Tambahkan informasi sort dan type dari relasi
+                $formattedChild['sort'] = $relation->sort ?? 0;
+                $formattedChild['relation_type'] = $relation->type;
+                $formattedChild['relation_type_label'] = $relation->type_label;
+                $result[] = $formattedChild;
+            }
+        }
+
+        return $result;
     }
 
     private function getParentsData(int $personId): array
@@ -193,11 +215,74 @@ class FamilyTreeService
         return $result;
     }
 
-    private function getSpouses(int $personId): array
+    /**
+     * Get active spouses - HANYA pasangan yang masih menikah (belum cerai)
+     * Laki-laki: bisa memiliki banyak pasangan
+     * Perempuan: hanya satu pasangan (otomatis karena hanya akan ada 1 yang aktif)
+     */
+    private function getActiveSpouses(int $personId): array
     {
         $person = Person::findOrFail($personId);
 
-        if ($person->gender === 'male') {
+        // Ambil pernikahan yang aktif (belum cerai)
+        if ($person->gender === 'male' || $person->gender === 'Laki-laki') {
+            // Laki-laki: bisa multiple wives (poligami)
+            $marriages = Marriage::where('husband_id', $personId)
+                ->whereNull('divorce_date')
+                ->with('wife')
+                ->get();
+            $others = $marriages->pluck('wife')->filter()->values();
+            $map = $marriages->keyBy('wife_id');
+        } else {
+            // Perempuan: hanya 1 suami aktif
+            $marriage = Marriage::where('wife_id', $personId)
+                ->whereNull('divorce_date')
+                ->with('husband')
+                ->first();
+            
+            if (!$marriage) {
+                return [];
+            }
+            
+            $others = collect([$marriage->husband])->filter();
+            $map = collect([$marriage->husband_id => $marriage]);
+        }
+
+        return $others->map(function (Person $other) use ($map, $personId) {
+            $marriage = $map->get($other->id);
+            if (!$marriage) {
+                return null;
+            }
+            
+            $data = $this->formatPersonCompact($other);
+            $data['marriage'] = [
+                'marriage_id'    => $marriage->id,
+                'marriage_date'  => optional($marriage->marriage_date)->format('Y-m-d'),
+                'divorce_date'   => optional($marriage->divorce_date)->format('Y-m-d'),
+                'is_divorced'    => !is_null($marriage->divorce_date),
+            ];
+            
+            // Tambahkan informasi pasangan ini adalah pasangan ke berapa
+            // (untuk laki-laki yang poligami)
+            if ($personId && (auth()->user()?->gender ?? $personId) === 'male') {
+                $spouseCount = Marriage::where('husband_id', $personId)
+                    ->whereNull('divorce_date')
+                    ->count();
+                $data['spouse_number'] = $spouseCount;
+            }
+            
+            return $data;
+        })->filter()->values()->toArray();
+    }
+
+    /**
+     * Get ALL spouses (termasuk yang sudah cerai) - untuk keperluan tertentu
+     */
+    private function getAllSpouses(int $personId): array
+    {
+        $person = Person::findOrFail($personId);
+
+        if ($person->gender === 'male' || $person->gender === 'Laki-laki') {
             $marriages = Marriage::where('husband_id', $personId)->with('wife')->get();
             $others = $marriages->pluck('wife')->filter()->values();
             $map = $marriages->keyBy('wife_id');
@@ -240,17 +325,17 @@ class FamilyTreeService
             return false;
         }
 
-        // Laki-laki: bisa jika sudah cukup umur
+        // Laki-laki: bisa jika sudah cukup umur (bisa poligami)
         if ($person->gender === 'male' || $person->gender === 'Laki-laki') {
             return true;
         }
 
         // Perempuan: cek apakah masih punya pasangan aktif
-        $spouses = $this->getSpouses($person->id);
-        foreach ($spouses as $spouse) {
-            if (!$spouse['marriage']['is_divorced']) {
-                return false;
-            }
+        $spouses = $this->getActiveSpouses($person->id);
+        
+        // Jika sudah punya pasangan aktif, tidak bisa tambah
+        if (count($spouses) > 0) {
+            return false;
         }
 
         return true;
@@ -301,15 +386,10 @@ class FamilyTreeService
      */
     private function canAddChild(int $personId): bool
     {
-        $spouses = $this->getSpouses($personId);
+        $spouses = $this->getActiveSpouses($personId);
         
-        foreach ($spouses as $spouse) {
-            if (!$spouse['marriage']['is_divorced']) {
-                return true;
-            }
-        }
-        
-        return false;
+        // Cek apakah ada pasangan aktif (belum cerai)
+        return count($spouses) > 0;
     }
 
     /*
@@ -338,6 +418,27 @@ class FamilyTreeService
         ];
     }
 
+    private function getPersonHistories(int $personId): array
+    {
+        return PersonHistory::query()
+            ->where('person_id', $personId)
+            ->orderBy('sort')
+            ->orderBy('event_date')
+            ->get()
+            ->map(function (PersonHistory $history) {
+                return [
+                    'id' => $history->id,
+                    'event_date' => optional($history->event_date)->format('Y-m-d'),
+                    'title' => $history->title,
+                    'description' => $history->description,
+                    'location' => $history->location,
+                    'sort' => $history->sort,
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
     private function genderLabel(?string $gender): ?string
     {
         return match ($gender) {
@@ -361,7 +462,6 @@ class FamilyTreeService
     private function findPersonOrFail(string $identifier): Person
     {
         $person = Person::where('uuid', $identifier)
-            ->orWhere('id', $identifier)
             ->first();
 
         if (!$person) {
@@ -374,5 +474,101 @@ class FamilyTreeService
     private function isAuthenticated(): bool
     {
         return auth()->check();
+    }
+
+    /**
+     * Helper: Get person with all relationships
+     */
+    public function getPersonWithRelations(string $identifier): array
+    {
+        $person = $this->findPersonOrFail($identifier);
+        $isAuthenticated = $this->isAuthenticated();
+
+        return [
+            'person' => $this->formatNodeWithRelationsAndActions($person),
+            'can_edit' => $isAuthenticated,
+            'can_delete' => $isAuthenticated,
+            'metadata' => [
+                'total_spouses' => count($this->getAllSpouses($person->id)),
+                'active_spouses' => count($this->getActiveSpouses($person->id)),
+                'total_children' => count($this->getChildren($person->id)),
+                'has_both_parents' => $this->hasBothParents($person->id),
+            ]
+        ];
+    }
+
+    /**
+     * Cek apakah seseorang memiliki kedua orang tua
+     */
+    private function hasBothParents(int $personId): bool
+    {
+        $parents = $this->getParentsData($personId);
+        return $parents['father'] !== null && $parents['mother'] !== null;
+    }
+
+    /**
+     * Get family tree statistics
+     */
+    public function getFamilyTreeStats(string $identifier): array
+    {
+        $person = $this->findPersonOrFail($identifier);
+        
+        $nodes = [];
+        $visited = [];
+        $this->collectNodes($person->id, $nodes, $visited, 2);
+
+        return [
+            'total_members' => count($nodes),
+            'total_spouses' => count($this->getAllSpouses($person->id)),
+            'total_children' => count($this->getChildren($person->id)),
+            'generations' => $this->calculateGenerations($person->id),
+        ];
+    }
+
+    /**
+     * Hitung generasi dalam family tree
+     */
+    private function calculateGenerations(int $personId): array
+    {
+        // Cari level tertinggi (ancestors)
+        $maxAncestorLevel = 0;
+        $this->findMaxAncestorLevel($personId, 0, $maxAncestorLevel);
+
+        // Cari level terendah (descendants)
+        $maxDescendantLevel = 0;
+        $this->findMaxDescendantLevel($personId, 0, $maxDescendantLevel);
+
+        return [
+            'ancestors' => $maxAncestorLevel,
+            'descendants' => $maxDescendantLevel,
+            'total' => $maxAncestorLevel + $maxDescendantLevel + 1,
+        ];
+    }
+
+    private function findMaxAncestorLevel(int $personId, int $currentLevel, int &$maxLevel): void
+    {
+        if ($currentLevel > $maxLevel) {
+            $maxLevel = $currentLevel;
+        }
+
+        $parents = $this->getParentsData($personId);
+        if ($parents['father']) {
+            $this->findMaxAncestorLevel($parents['father']['id'], $currentLevel + 1, $maxLevel);
+        }
+        if ($parents['mother']) {
+            $this->findMaxAncestorLevel($parents['mother']['id'], $currentLevel + 1, $maxLevel);
+        }
+    }
+
+    private function findMaxDescendantLevel(int $personId, int $currentLevel, int &$maxLevel): void
+    {
+        if ($currentLevel > $maxLevel) {
+            $maxLevel = $currentLevel;
+        }
+
+        $children = $this->getChildren($personId);
+        foreach ($children as $child) {
+            $this->findMaxDescendantLevel($child['id'], $currentLevel + 1, $maxLevel);
+        }
     }
 }
