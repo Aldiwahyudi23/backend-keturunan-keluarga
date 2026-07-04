@@ -346,4 +346,12 @@ class Person extends Model
 
         return false;
     }
+
+    /**
+     * Relasi dengan Book, untuk menandai bahwa person ini adalah root person dari buku tertentu.
+     */
+    public function books(): HasMany
+    {
+        return $this->hasMany(Book::class, 'root_person_id');
+    }
 }

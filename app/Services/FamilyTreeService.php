@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Book;
 use App\Models\Person;
 use App\Models\ParentChildRelation;
 use App\Models\Marriage;
@@ -43,6 +44,8 @@ class FamilyTreeService
             'root_id' => $person->id,
 
             'can_add_self' => $this->isAuthenticated(),
+
+            'book' => $this->getPublishedBookEditions($person),
 
             'person_histories' => $this->getPersonHistories($person->id),
 
@@ -570,5 +573,38 @@ class FamilyTreeService
         foreach ($children as $child) {
             $this->findMaxDescendantLevel($child['id'], $currentLevel + 1, $maxLevel);
         }
+    }
+
+    /**
+     * Mengambil daftar buku yang telah dipublish
+     * berdasarkan tokoh utama (root person).
+     */
+    private function getPublishedBookEditions(Person $person): array
+    {
+        $books = Book::query()
+            ->published()
+            ->where('root_person_id', $person->id)
+            ->orderByDesc('published_at')
+            ->get([
+                'id',
+                'title',
+                'edition',
+                'version',
+                'published_at',
+            ]);
+
+        return [
+            'total' => $books->count(),
+
+            'items' => $books->map(function (Book $book) {
+                return [
+                    'id' => $book->id,
+                    'title' => $book->title,
+                    'edition' => $book->edition,
+                    'version' => $book->version,
+                    'published_at' => optional($book->published_at)->toDateString(),
+                ];
+            })->values(),
+        ];
     }
 }

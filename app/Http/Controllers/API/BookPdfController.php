@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\Report\BookPdfService;
-use Illuminate\Http\Request;
+use App\Models\Book;
+use App\Services\Book\BookPdfService;
+use Symfony\Component\HttpFoundation\Response;
 
 class BookPdfController extends Controller
 {
@@ -13,19 +14,31 @@ class BookPdfController extends Controller
     ) {
     }
 
-    public function show(Request $request, string $uuid)
+    /**
+     * Preview PDF.
+     */
+    public function preview(int $bookId): Response
     {
-        return $this->bookPdfService->generate(
-            $uuid,
-            (int) $request->get('level', 0)
-        );
+        $book = Book::with([
+            'rootPerson.fatherRelation.parent',
+            'template',
+            'sections',
+        ])->findOrFail($bookId);
+
+        return $this->bookPdfService->generate($book);
     }
 
-    public function download(Request $request, string $uuid)
+    /**
+     * Download PDF.
+     */
+    public function download(int $bookId): Response
     {
-        return $this->bookPdfService->download(
-            $uuid,
-            (int) $request->get('level', 0)
-        );
+        $book = Book::with([
+            'rootPerson.fatherRelation.parent',
+            'template',
+            'sections',
+        ])->findOrFail($bookId);
+
+        return $this->bookPdfService->download($book);
     }
 }

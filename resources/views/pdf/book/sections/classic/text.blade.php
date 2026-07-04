@@ -1,13 +1,8 @@
 <div class="chapter">
-
     <h1 class="chapter-title">
-        {{ $introduction['title'] }}
+        {{ $section['title'] ?? '' }}
     </h1>
-
     <div class="chapter-content">
-
-        {!! $introduction['content'] !!}
-
+        {!! $section['data']['content'] ?? '' !!}
     </div>
-
 </div>

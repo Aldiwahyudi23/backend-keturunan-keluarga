@@ -41,6 +41,7 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Grid as InfolistGrid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Services\Report\BookPdfService;
 
 class PersonResource extends Resource
 {
@@ -400,25 +401,60 @@ class PersonResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail'),
 
-                    Tables\Actions\Action::make('downloadCard')
-                        ->label('Download Kartu')
-                        ->icon('heroicon-o-identification')
-                        ->color('success')
-                        ->action(function (Person $record) {
-                            $service = new PersonCardService();
-                            return $service->generateCard($record, true);
-                        }),
-                    
-                    Tables\Actions\Action::make('viewCard')
-                        ->label('Lihat Kartu')
-                        ->icon('heroicon-o-eye')
-                        ->color('info')
-                        ->url(fn (Person $record) => route('filament.admin.resources.people.card', $record))
-                        ->openUrlInNewTab(),
-                    
-                    Tables\Actions\EditAction::make()
+                        
+                        Tables\Actions\EditAction::make()
                         ->label('Edit Person'),
-                    
+                        
+                        Tables\Actions\Action::make('downloadCard')
+                            ->label('Download Kartu')
+                            ->icon('heroicon-o-identification')
+                            ->color('success')
+                            ->action(function (Person $record) {
+                                $service = new PersonCardService();
+                                return $service->generateCard($record, true);
+                            }),
+                        
+                        Tables\Actions\Action::make('viewCard')
+                            ->label('Lihat Kartu')
+                            ->icon('heroicon-o-eye')
+                            ->color('info')
+                            ->url(fn (Person $record) => route('filament.admin.resources.people.card', $record))
+                            ->openUrlInNewTab(),
+
+                        Tables\Actions\Action::make('pdf')
+                            ->label('Generate PDF')
+                            ->icon('heroicon-o-document-arrow-down')
+                            ->color('danger')
+
+                            ->form([
+                                Select::make('level')
+                                    ->label('Jumlah Generasi')
+                                    ->options([
+                                        0  => 'Semua Generasi',
+                                        1  => 'Generasi 1',
+                                        2  => 'Generasi 2',
+                                        3  => 'Generasi 3',
+                                        4  => 'Generasi 4',
+                                        5  => 'Generasi 5',
+                                        6  => 'Generasi 6',
+                                        7  => 'Generasi 7',
+                                        8  => 'Generasi 8',
+                                        9  => 'Generasi 9',
+                                        10 => 'Generasi 10',
+                                    ])
+                                    ->default(0)
+                                    ->native(false),
+                            ])
+
+                            ->action(function (Person $record, array $data) {
+
+                                return redirect()->route('book.download', [
+                                    'uuid'  => $record->uuid,
+                                    'level' => (int) ($data['level'] ?? 0),
+                                ]);
+
+                            }),
+
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus'),
                 ]),

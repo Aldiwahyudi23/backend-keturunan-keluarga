@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany; 
 
 class User extends Authenticatable
 {
@@ -55,5 +56,30 @@ class User extends Authenticatable
         return $this->is_active;
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relations Book
+    |--------------------------------------------------------------------------
+    */
+    public function createdBooks(): HasMany
+    {
+        return $this->hasMany(Book::class, 'created_by');
+    }
+
+    public function updatedBooks(): HasMany
+    {
+        return $this->hasMany(Book::class, 'updated_by');
+    }
+
+    public function createdBookSections(): HasMany
+    {
+        return $this->hasMany(BookSection::class, 'created_by');
+    }
+
+    public function updatedBookSections(): HasMany
+    {
+        return $this->hasMany(BookSection::class, 'updated_by');
+    }
     
 }

@@ -41,8 +41,6 @@ class HistoryService
                     'person_code' => $person->person_code,
                     'full_name' => $person->full_name,
                     'full_name_with_nasab' => $person->full_name_with_nasab ?? $person->full_name,
-                    'bio' => $person->bio,
-                    'photo_path' => $person->photo_path,
                     
                 ],
                 'histories' => $this->transformHistories(
