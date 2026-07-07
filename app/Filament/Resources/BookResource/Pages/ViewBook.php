@@ -13,7 +13,16 @@ class ViewBook extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+
+            Actions\Action::make('downloadPdf')
+                ->label('Download PDF')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->url(fn () => route('books.download', $this->record))
+                ->visible(fn () => $this->record->status === 'published'),
+
             Actions\EditAction::make(),
+
         ];
     }
 }

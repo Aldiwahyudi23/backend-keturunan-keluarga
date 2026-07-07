@@ -1,12 +1,8 @@
 <div class="chapter">
-    {{-- //resources/views/pdf/book/sections/classic/genealogy.blade.php --}}
     <h1 class="chapter-title">
         {{ $section['title'] ?? '' }}
     </h1>
 
-    {{-- ===================================================== --}}
-    {{-- ROOT PERSON --}}
-    {{-- ===================================================== --}}
     @php
         $data = $section['data'] ?? [];
         $root = $data['root_person'] ?? [];
@@ -18,16 +14,15 @@
         <h2 class="generation-title">Leluhur Utama</h2>
 
         <div class="member-card root-card" style="text-align: center;">
-            {{-- FOTO --}}
             @if(!empty($root['photo_path']))
-                <div style="margin-bottom: 20px;">
+                <div style="margin-bottom: 16px;">
                     <img src="{{ storage_path('app/public/'.$root['photo_path']) }}"
-                         style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 3px solid #9b7a2d;"
+                         style="width: 160px; height: 160px; object-fit: cover; border: 1px solid #ccc;"
                          alt="Foto">
                 </div>
             @endif
 
-            <div class="member-name" style="font-size:16pt; margin-bottom:15px;">
+            <div class="member-name" style="font-size:14pt; margin-bottom:12px;">
                 {{ $root['full_name_with_nasab'] ?? '-' }}
             </div>
 
@@ -56,15 +51,15 @@
                 </tr>
                 @endif
             </table>
-            
+
              @if(!empty($root['marriage_summary']))
-                 <div style="margin-top: 10px; padding-top: 5px; border-top: 1px dashed #ddd; text-align: justify; font-style: italic;">
+                 <div style="margin-top: 8px; padding-top: 4px; border-top: 1px solid #eee; text-align: justify; font-style: italic; color: #666;">
                     {{ $root['marriage_summary'] }}
                 </div>
             @endif
-            {{-- BIO --}}
+
             @if(!empty($root['bio']))
-                <div style="margin-top: 10px; padding-top: 5px; border-top: 1px dashed #ddd; text-align: justify; font-style: italic;">
+                <div style="margin-top: 8px; padding-top: 4px; border-top: 1px solid #eee; text-align: justify; font-style: italic; color: #666;">
                     {{ $root['bio'] }}
                 </div>
             @endif
@@ -72,9 +67,6 @@
     </div>
     @endif
 
-    {{-- ===================================================== --}}
-    {{-- GENERASI --}}
-    {{-- ===================================================== --}}
     @if(!empty($generations))
         @foreach($generations as $generation => $members)
             <div class="generation">
@@ -84,7 +76,7 @@
 
                 @foreach($members as $memberGroup)
                     @if(!empty($memberGroup['parent_info']))
-                        <div style="margin: 10px 0 10px; font-style:italic; color:#666;">
+                        <div style="margin: 8px 0 8px; font-style:italic; color:#888;">
                             {{ $memberGroup['parent_info'] }}
                         </div>
                     @endif
@@ -131,7 +123,7 @@
                                                 @foreach($member['marriages'] as $marriage)
                                                     <tr>
                                                         <td colspan="3" style="padding-top:2px;">
-                                                            <div style="border-top:1px dashed #eee; padding-top:2px;">
+                                                            <div style="border-top:1px solid #eee; padding-top:2px;">
                                                                 <strong>Pernikahan {{ $marriage['order'] ?? '' }}</strong>
                                                                 @if(!empty($marriage['status']))
                                                                     ({{ $marriage['status'] }})
@@ -156,7 +148,7 @@
                                         </table>
                                     </td>
 
-                                    <td width="120" align="right" valign="top">
+                                    <td width="100" align="right" valign="top">
                                         @if(!empty($member['photo_path']))
                                             <img src="{{ storage_path('app/public/'.$member['photo_path']) }}"
                                                  class="member-photo" alt="Foto">

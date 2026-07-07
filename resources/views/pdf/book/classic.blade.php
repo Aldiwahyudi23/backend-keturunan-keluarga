@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="id">
-
+//resources/views/pdf/book/classic.blade.php
 <head>
     <meta charset="utf-8">
     @include('pdf.book.style.classic')

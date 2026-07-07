@@ -1,4 +1,3 @@
-{{-- // resources/views/pdf/book/sections/classic/history.blade.php --}}
 @php
     $history = $section['data'] ?? [];
 @endphp

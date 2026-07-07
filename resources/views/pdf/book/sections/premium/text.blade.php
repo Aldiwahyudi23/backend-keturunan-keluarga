@@ -1,4 +1,3 @@
-{{-- // resources/views/pdf/book/sections/classic/text.blade.php --}}
 <div class="chapter">
     <h1 class="chapter-title">
         {{ $section['title'] ?? '' }}

@@ -13,8 +13,18 @@ class EditBook extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+
+            Actions\Action::make('previewPdf')
+                ->label('Preview PDF')
+                ->icon('heroicon-o-document-text')
+                ->color('success')
+                ->url(fn () => route('books.preview', $this->record))
+                ->openUrlInNewTab(),
+
             Actions\ViewAction::make(),
+
             Actions\DeleteAction::make(),
+
         ];
     }
 }

@@ -1,4 +1,5 @@
 <style>
+    /* //Resources/views/pdf/book/style/classic.blade.php */
 @page {
     margin: 1.5cm 2cm 2cm 3cm;
 }
@@ -371,7 +372,7 @@ a {
 }
 
 .member-table td {
-    padding: 2px 5px 2px 0;
+    padding: 2px 2px 2px 0;
     vertical-align: top;
 }
 
@@ -402,8 +403,8 @@ a {
 }
 
 .member-children {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px dashed #ddd;
 }
 

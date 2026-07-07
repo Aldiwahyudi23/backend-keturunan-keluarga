@@ -85,7 +85,7 @@ class Book extends Model
     ];
 
     protected $casts = [
-
+        'default_max_generation' => 'integer',
         'show_cover' => 'boolean',
         'show_table_of_contents' => 'boolean',
 

@@ -1,8 +1,7 @@
 <div class="cover">
-    {{-- //resources/views/pdf/book/sections/classic/cover.blade.php --}}
     <div class="cover-main-content" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
         @if(!empty($cover['logo']))
-            <img src="{{ storage_path('app/public/'.$cover['logo']) }}"  class="cover-logo" alt="Logo">
+            <img src="{{ storage_path('app/public/'.$cover['logo']) }}" class="cover-logo" alt="Logo">
         @else
             <img src="{{ public_path('book/logo.png') }}" class="cover-logo" alt="Logo">
         @endif

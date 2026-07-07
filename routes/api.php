@@ -10,10 +10,10 @@ use App\Http\Controllers\Api\BookPdfController;
 use App\Http\Controllers\Api\BookDataController;
 
 // Hanya untuk ngetes data yang di hasilkan dan sekarang sudah tidak digunakan lagi
-    // Route::get('buku/{book}/data', [
-    //     BookDataController::class,
-    //     'show',
-    // ]);
+    Route::get('buku/{book}/data', [
+        BookDataController::class,
+        'show',
+    ]);
 
     // ===========================================================
 
