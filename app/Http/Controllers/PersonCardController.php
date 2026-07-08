@@ -4,19 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\Person;
 use App\Services\PersonCardService;
-use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class PersonCardController extends Controller
 {
-    public function download(Person $person)
-    {
-        $service = new PersonCardService();
-        return $service->generateCard($person, true);
+    public function __construct(
+        protected PersonCardService $service
+    ) {
     }
 
-    public function view(Person $person)
+    /**
+     * Preview.
+     */
+    public function show(Person $person): Response
     {
-        $service = new PersonCardService();
-        return $service->generateCard($person, false);
+        return $this->service->generate($person);
+    }
+
+    /**
+     * Download.
+     */
+    public function download(Person $person): Response
+    {
+        return $this->service->download($person);
     }
 }

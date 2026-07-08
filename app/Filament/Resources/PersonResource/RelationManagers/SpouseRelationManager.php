@@ -83,23 +83,25 @@ class SpouseRelationManager extends RelationManager
                         // Pilih Pasangan yang sudah ada dengan tombol +
                         Section::make('Pilih Pasangan yang Sudah Ada')
                             ->schema([
-                                Select::make('existing_spouse_id')
-                                    ->label('Cari Pasangan')
-                                    ->options(function () {
-                                        $person = $this->getOwnerRecord();
-                                        $oppositeGender = $person->gender === 'male' ? 'female' : 'male';
+                            Select::make('existing_spouse_id')
+                                ->label('Cari Pasangan')
+                                ->options(function () {
+                                    $person = $this->getOwnerRecord();
+                                    $oppositeGender = $person->gender === 'male' ? 'female' : 'male';
 
-                                        return Person::where('id', '!=', $person->id)
-                                            ->where('gender', $oppositeGender)
-                                            ->orderBy('full_name')
-                                            ->pluck('full_name', 'id')
-                                            ->map(function ($name, $id) {
-                                                $p = Person::find($id);
-                                                return "{$name} ({$p->person_code})";
-                                            })
-                                            ->toArray();
-                                    })
-                                    ->searchable()
+                                    return Person::with('fatherRelation.parent')
+                                        ->where('id', '!=', $person->id)
+                                        ->where('gender', $oppositeGender)
+                                        ->orderBy('full_name')
+                                        ->get()
+                                        ->mapWithKeys(function (Person $person) {
+                                            return [
+                                                $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->searchable()
                                     ->preload()
                                     ->live()
                                     ->placeholder('Ketik untuk mencari pasangan...')

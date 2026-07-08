@@ -117,17 +117,19 @@ class ChildRelationManager extends RelationManager
                         Section::make('Pilih Anak yang Sudah Ada')
                             ->schema([
                                 Select::make('existing_child_id')
-                                    ->label('Cari Anak')
-                                    ->options(function () {
-                                        return Person::orderBy('full_name')
-                                            ->pluck('full_name', 'id')
-                                            ->map(function ($name, $id) {
-                                                $person = Person::find($id);
-                                                return "{$name} ({$person->person_code})";
-                                            })
-                                            ->toArray();
-                                    })
-                                    ->searchable()
+                                ->label('Cari Anak')
+                                ->options(function () {
+                                    return Person::with('fatherRelation.parent')
+                                        ->orderBy('full_name')
+                                        ->get()
+                                        ->mapWithKeys(function (Person $person) {
+                                            return [
+                                                $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->searchable()
                                     ->preload()
                                     ->live()
                                     ->placeholder('Ketik untuk mencari anak...')

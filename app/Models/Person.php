@@ -67,6 +67,30 @@ class Person extends Model
     */
 
     /**
+     * Relasi ke parent biologis perempuan (Ibu).
+     */
+    public function motherRelation(): HasOne
+    {
+        return $this->hasOne(
+            ParentChildRelation::class,
+            'child_id',
+            'id'
+        )
+        ->where('type', 'biological')
+        ->whereHas('parent', function ($query) {
+            $query->where('gender', 'female');
+        });
+    }
+
+    /**
+     * Ambil data ibu biologis.
+     */
+    public function getMotherAttribute(): ?Person
+    {
+        return $this->motherRelation?->parent;
+    }
+
+    /**
     * Relasi ke parent biologis laki-laki (Ayah).
     */
     public function fatherRelation(): HasOne

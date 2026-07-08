@@ -340,7 +340,8 @@ class PersonResource extends Resource
                     ->label('UUID')
                     ->searchable()
                     ->copyable()
-                    ->size('sm'),
+                    ->size('sm')
+                    ->toggleable(),
                 
                 TextColumn::make('person_code')
                     ->label('Kode')
@@ -349,11 +350,15 @@ class PersonResource extends Resource
                     ->size('sm')
                     ->weight('bold'),
                 
-                TextColumn::make('full_name')
+                TextColumn::make('full_name_with_nasab')
                     ->label('Nama')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                   ->searchable(query: function ($query, string $search) {
+                        $query->where('full_name', 'like', "%{$search}%")
+                            ->orWhereHas('fatherRelation.parent', function ($q) use ($search) {
+                                $q->where('full_name', 'like', "%{$search}%");
+                            });
+                    }),
                 
                 TextColumn::make('gender')
                     ->label('JK')
@@ -404,22 +409,6 @@ class PersonResource extends Resource
                         
                         Tables\Actions\EditAction::make()
                         ->label('Edit Person'),
-                        
-                        Tables\Actions\Action::make('downloadCard')
-                            ->label('Download Kartu')
-                            ->icon('heroicon-o-identification')
-                            ->color('success')
-                            ->action(function (Person $record) {
-                                $service = new PersonCardService();
-                                return $service->generateCard($record, true);
-                            }),
-                        
-                        Tables\Actions\Action::make('viewCard')
-                            ->label('Lihat Kartu')
-                            ->icon('heroicon-o-eye')
-                            ->color('info')
-                            ->url(fn (Person $record) => route('filament.admin.resources.people.card', $record))
-                            ->openUrlInNewTab(),
 
                         Tables\Actions\Action::make('pdf')
                             ->label('Generate PDF')
@@ -659,7 +648,6 @@ class PersonResource extends Resource
             'create' => Pages\CreatePerson::route('/create'),
             'view' => Pages\ViewPerson::route('/{record}'),
             'edit' => Pages\EditPerson::route('/{record}/edit'),
-            'card' => Pages\ViewPersonCard::route('/{record}/card'),
         ];
     }
 }

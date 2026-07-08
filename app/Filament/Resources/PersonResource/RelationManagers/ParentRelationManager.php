@@ -130,18 +130,20 @@ class ParentRelationManager extends RelationManager
                         // Pilih Orang Tua yang sudah ada dengan tombol +
                         Section::make('Pilih Orang Tua yang Sudah Ada')
                             ->schema([
-                                Select::make('existing_parent_id')
-                                    ->label('Cari Orang Tua')
-                                    ->options(function () {
-                                        return Person::orderBy('full_name')
-                                            ->pluck('full_name', 'id')
-                                            ->map(function ($name, $id) {
-                                                $person = Person::find($id);
-                                                return "{$name} ({$person->person_code})";
-                                            })
-                                            ->toArray();
-                                    })
-                                    ->searchable()
+                            Select::make('existing_parent_id')
+                                ->label('Cari Orang Tua')
+                                ->options(function () {
+                                    return Person::with('fatherRelation.parent')
+                                        ->orderBy('full_name')
+                                        ->get()
+                                        ->mapWithKeys(function (Person $person) {
+                                            return [
+                                                $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->searchable()
                                     ->preload()
                                     ->live()
                                     ->placeholder('Ketik untuk mencari orang tua...')

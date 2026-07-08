@@ -4,63 +4,105 @@ namespace App\Services;
 
 use App\Models\Person;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Symfony\Component\HttpFoundation\Response;
 
 class PersonCardService
 {
     /**
-     * Generate PDF kartu person
+     * Preview Card.
      */
-    public function generateCard(Person $person, $download = true)
+    public function generate(Person $person): Response
     {
-        // Ambil data orang tua
-        $parents = $person->parents()->get();
-        $father = $parents->where('gender', 'male')->first();
-        $mother = $parents->where('gender', 'female')->first();
+        $person->loadMissing([
+            'fatherRelation.parent',
+        ]);
+
+        $url = url('https://keturunan.keluargamahaya.com/family-tree/' . $person->uuid);
+
+        $qrCode = base64_encode(
+            QrCode::format('svg')
+                ->size(180)
+                ->margin(1)
+                ->generate($url)
+        );
 
         $data = [
-            'person' => $person,
-            'father' => $father,
-            'mother' => $mother,
-            'birth_date_formatted' => $person->birth_date ? Carbon::parse($person->birth_date)->translatedFormat('d F Y') : '-',
-            'gender_label' => $person->gender === 'male' ? 'Laki-laki' : 'Perempuan',
+            'person' => [
+                'person_code' => $person->person_code,
+                'full_name' => $person->full_name,
+                'full_name_with_nasab' => $person->full_name_with_nasab,
+                'father_name' => $person->father?->full_name,
+                'mother_name' => $person->mother?->full_name,
+                'marital_status' => $person->hasActiveMarriage()
+                    ? 'Menikah'
+                    : 'Belum Menikah',
+                'nasab' => $person->nasab,
+                'birth_date' => $person->birth_date
+                    ? $person->birth_date->translatedFormat('F Y')
+                    : '-',
+                'photo' => $person->photo_path,
+                'qr' => $qrCode,
+                'qr_url' => $url,
+            ],
         ];
 
-        $pdf = Pdf::loadView('pdf.person-card', $data);
-        $pdf->setPaper('a6', 'portrait'); // Ukuran kartu A6 (105 x 148 mm)
-        
-        // Atau ukuran custom seperti kartu identitas
-        // $pdf->setPaper([0, 0, 85.6, 53.98], 'portrait'); // Ukuran kartu ATM/KTP
+        $pdf = Pdf::loadView(
+            'pdf.person-card',
+            $data
+        )->setPaper('a6', 'landscape');
 
-        if ($download) {
-            return $pdf->download("kartu-person-{$person->person_code}.pdf");
-        }
-
-        return $pdf->stream("kartu-person-{$person->person_code}.pdf");
+        return $pdf->stream(
+            'kartu-' . $person->person_code . '.pdf'
+        );
     }
 
     /**
-     * Generate dan save kartu ke storage
+     * Download Card.
      */
-    public function saveCard(Person $person)
+    public function download(Person $person): Response
     {
+        $person->loadMissing([
+            'fatherRelation.parent',
+        ]);
+
+        
+        $url = url('https://keturunan.keluargamahaya.com/family-tree/' . $person->uuid);
+
+        $qrCode = base64_encode(
+            QrCode::format('svg')
+                ->size(180)
+                ->margin(1)
+                ->generate($url)
+        );
+
         $data = [
-            'person' => $person,
-            'father' => $person->parents()->where('gender', 'male')->first(),
-            'mother' => $person->parents()->where('gender', 'female')->first(),
-            'birth_date_formatted' => $person->birth_date ? Carbon::parse($person->birth_date)->translatedFormat('d F Y') : '-',
-            'gender_label' => $person->gender === 'male' ? 'Laki-laki' : 'Perempuan',
+            'person' => [
+                'person_code' => $person->person_code,
+                'full_name' => $person->full_name,
+                'full_name_with_nasab' => $person->full_name_with_nasab,
+                'father_name' => $person->father?->full_name,
+                'mother_name' => $person->mother?->full_name,
+                'marital_status' => $person->hasActiveMarriage()
+                    ? 'Menikah'
+                    : 'Belum Menikah',
+                'nasab' => $person->nasab,
+                'birth_date' => $person->birth_date
+                    ? $person->birth_date->translatedFormat('F Y')
+                    : '-',
+                'photo' => $person->photo_path,
+                'qr' => $qrCode,
+                'qr_url' => $url,
+            ],
         ];
 
-        $pdf = Pdf::loadView('pdf.person-card', $data);
-        $pdf->setPaper('a6', 'portrait');
+        $pdf = Pdf::loadView(
+            'pdf.person-card',
+            $data
+        )->setPaper('a6', 'landscape');
 
-        $filename = "kartu-person-{$person->person_code}.pdf";
-        $path = "person-cards/{$filename}";
-        
-        Storage::disk('public')->put($path, $pdf->output());
-        
-        return Storage::disk('public')->url($path);
+        return $pdf->download(
+            'kartu-' . $person->person_code . '.pdf'
+        );
     }
 }
