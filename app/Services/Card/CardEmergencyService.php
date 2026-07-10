@@ -4,6 +4,7 @@ namespace App\Services\Card;
 
 use App\Models\Card\Card;
 use App\Models\Person;
+use App\Models\PersonActivity;
 
 class CardEmergencyService
 {
@@ -48,9 +49,13 @@ class CardEmergencyService
             ];
         }
 
+        // Ambil 5 aktivitas terbaru berdasarkan person_id
+        $recentActivities = $this->getRecentActivities($person->id);
+
         return [
             'contacts' => $formattedContacts,
             'address' => $cardPerson->address,
+            'timeline_activities' => $recentActivities, // Tambahkan data aktivitas
         ];
     }
 
@@ -67,5 +72,30 @@ class CardEmergencyService
         }
 
         return '62'.$phone;
+    }
+
+    /**
+     * Get 5 most recent activities for a person
+     * 
+     * @param int $personId
+     * @return array
+     */
+    private function getRecentActivities(int $personId): array
+    {
+        $activities = PersonActivity::where('person_id', $personId)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        $formattedActivities = [];
+
+        foreach ($activities as $activity) {
+            $formattedActivities[] = [
+                'datetime' => $activity->created_at->format('Y-m-d H:i:s'), // Format datetime
+                'description' => $activity->description,
+            ];
+        }
+
+        return $formattedActivities;
     }
 }

@@ -553,6 +553,7 @@ class PersonResource extends Resource
             RelationManagers\SpouseRelationManager::class,
             RelationManagers\ChildRelationManager::class,
             RelationManagers\ParentRelationManager::class,
+            RelationManagers\PersonActivityRelationManager::class,
         ];
     }
 

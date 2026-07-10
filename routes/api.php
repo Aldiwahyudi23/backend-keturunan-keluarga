@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BookDataController;
 use App\Http\Controllers\Api\BookPdfController;
 use App\Http\Controllers\Api\FamilyRelationshipController;
 use App\Http\Controllers\Api\FamilyTreeController;
+use App\Http\Controllers\Api\PersonActivityController;
 use Illuminate\Support\Facades\Route;
 
 // Hanya untuk ngetes data yang di hasilkan dan sekarang sudah tidak digunakan lagi
@@ -74,6 +75,12 @@ Route::prefix('people')->group(function () {
     Route::prefix('marriages')->group(function () {
         Route::put('{marriageId}', [FamilyTreeController::class, 'updateMarriage'])->middleware('auth:sanctum');
         Route::delete('{marriageId}', [FamilyTreeController::class, 'deleteMarriage'])->middleware('auth:sanctum');
+    });
+
+    // Person activities
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('{person}/activities', [PersonActivityController::class, 'index']);
+        Route::post('{person}/activities', [PersonActivityController::class, 'store']);
     });
 
     // ============ Public ==================

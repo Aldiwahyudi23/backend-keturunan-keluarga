@@ -30,9 +30,9 @@
 - `app/Http/Controllers/Api/` — AuthController (login/me/logout), FamilyTreeController (tree CRUD), BookPdfController, FamilyRelationshipController
 - `app/Http/Controllers/` — PersonCardController, CardController (card PDF preview/download)
 - `app/Http/Middleware/` — OptionalAuth (public tree, reads Bearer if present), CheckTokenAbility (Sanctum scope check)
-- `app/Models/` — Person, Marriage, ParentChildRelation, PersonHistory, Book, BookSection, BookTemplate
+- `app/Models/` — Person, Marriage, ParentChildRelation, PersonHistory, PersonActivity, Book, BookSection, BookTemplate
 - `app/Models/Card/` — CardTemplate, Card (uuid, FK root_person), CardContact, CardPeople (pivot with JSON `meta`)
-- `app/Services/` — FamilyTreeService (tree builder), FamilyTreeStoreService, FamilyTreeUpdateService, FamilyTreeSearchService, FamilyTreeDeleteService, PersonCardService
+- `app/Services/` — FamilyTreeService (tree builder), FamilyTreeStoreService, FamilyTreeUpdateService, FamilyTreeSearchService, FamilyTreeDeleteService, PersonCardService, PersonActivityService
 - `app/Services/Card/` — CardPersonService (generate card PDF from card_people data), CardEmergencyService (emergency contacts from card for tree API)
 - `app/Services/Report/` — GenealogyService, HistoryService
 
@@ -40,7 +40,7 @@
 - **Admin**: `/admin` (Filament)
 - **API auth**: `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/logout-all`
 - **API public**: `GET /api/people/{identifier}/tree` (UUID, `optional.auth`, optional `?card=uuid` for emergency contacts), `GET /api/people/search`, `POST /api/people/check-relationship`
-- **API protected** (Sanctum): person CRUD at `/api/people/{id}`, marriage and child management under `/api/people/marriages/{id}`, `/api/people/{parentId}/children/{childId}`, plus spouse-option queries
+- **API protected** (Sanctum): person CRUD at `/api/people/{id}`, marriage and child management under `/api/people/marriages/{id}`, `/api/people/{parentId}/children/{childId}`, plus spouse-option queries, person activities at `/api/people/{person}/activities`
 - **Web protected** (session): `/person/{person}/card`, `/person/{person}/card/download`, `/books/{book}/preview`, `/books/{book}/download`, `/card/{card}`, `/card/{card}/download`
 - **Deprecated**: `GET /api/buku/{book}/data` (test endpoint, unused)
 
@@ -49,6 +49,7 @@
 - **Marriage** — `husband_id`, `wife_id`, `marriage_date`, `divorce_date` (nullable = still married)
 - **ParentChildRelation** — `parent_id`, `child_id`, `type` = biological/adopted/step. Bug: `$casts` uses `sort_order` but column is `sort`. `SortableTrait` is commented out.
 - **PersonHistory** — belongs to Person, `sort` for ordering
+- **PersonActivity** — belongs to Person, `description`, `can_parent_view`, `created_by` FK User
 - **Book** — `root_person_id`, `template_id`, `status` = draft/published/archived, cover settings, `default_max_generation` (0 = all)
 - **BookTemplate** — DB has `blade_view` column (stores view path). Bug: `getBladeViewAttribute()` accessor uses non-existent `$this->key`, so all templates resolve to `classic`. `getEloquentQuery()` does NOT override `SoftDeletingScope`.
 - **BookSection** — belongs to Book, `type` = text/dynamic (model also checks image/page_break), `key`, `content`, `sort`

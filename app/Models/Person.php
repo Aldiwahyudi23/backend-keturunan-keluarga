@@ -378,4 +378,10 @@ class Person extends Model
     {
         return $this->hasMany(Book::class, 'root_person_id');
     }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(PersonActivity::class, 'person_id')
+            ->orderBy('created_at', 'desc');
+    }
 }
