@@ -7,14 +7,14 @@ use App\Filament\Resources\BookResource\RelationManagers\BookSectionsRelationMan
 use App\Models\Book;
 use App\Models\Person;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -210,19 +210,19 @@ class BookResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make(),
-                
+
                 Tables\Actions\Action::make('duplicate')
                     ->label('Duplicate')
                     ->icon('heroicon-o-document-duplicate')
                     ->color('gray')
-                
+
                     ->form([
-                
+
                         TextInput::make('title')
                             ->label('Judul Buku')
                             ->required()
-                            ->default(fn (Book $record) => $record->title . ' (Copy)'),
-                
+                            ->default(fn (Book $record) => $record->title.' (Copy)'),
+
                         Select::make('root_person_id')
                             ->label('Tokoh Utama')
                             ->relationship(
@@ -233,40 +233,40 @@ class BookResource extends Resource
                             ->searchable(['full_name'])
                             ->preload()
                             ->required(),
-                
+
                     ])
-                
+
                     ->action(function (Book $record, array $data) {
-                
+
                         $newBook = $record->replicate();
-                
+
                         // jika ada uuid
                         if (isset($newBook->uuid)) {
                             $newBook->uuid = Str::uuid();
                         }
-                
+
                         $newBook->title = $data['title'];
                         $newBook->root_person_id = $data['root_person_id'];
-                
+
                         $newBook->status = 'draft';
                         $newBook->published_at = null;
-                
+
                         $newBook->save();
-                
+
                         // duplicate semua section
                         foreach ($record->sections as $section) {
-                
+
                             $newSection = $section->replicate();
-                
+
                             if (isset($newSection->uuid)) {
                                 $newSection->uuid = Str::uuid();
                             }
-                
+
                             $newSection->book_id = $newBook->id;
-                
+
                             $newSection->save();
                         }
-                
+
                         return redirect(
                             BookResource::getUrl('edit', [
                                 'record' => $newBook,

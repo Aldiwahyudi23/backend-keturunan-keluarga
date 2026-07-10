@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Person;
-use App\Models\ParentChildRelation;
 use App\Models\Marriage;
+use App\Models\ParentChildRelation;
+use App\Models\Person;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class FamilyTreeStoreService
 {
@@ -46,14 +46,14 @@ class FamilyTreeStoreService
             switch ($source) {
                 case 'spouse':
                     $marriage = $this->createSpouseRelation($person, (int) $data['related_person_id'], $data);
-                    if (!empty($data['child_ids']) && is_array($data['child_ids'])) {
+                    if (! empty($data['child_ids']) && is_array($data['child_ids'])) {
                         $this->connectChildrenToSpouse($person->id, $data['child_ids']);
                     }
                     break;
 
                 case 'child':
                     $this->createChildRelation($person, (int) $data['related_person_id'], $data);
-                    if (!empty($data['additional_parent_id'])) {
+                    if (! empty($data['additional_parent_id'])) {
                         $this->connectChildToAdditionalParent($person->id, (int) $data['additional_parent_id'], $data);
                     }
                     break;
@@ -68,7 +68,7 @@ class FamilyTreeStoreService
             }
 
             return [
-                'person'   => $this->formatPersonCompact($person),
+                'person' => $this->formatPersonCompact($person),
                 'marriage' => $marriage,
             ];
         });
@@ -80,7 +80,7 @@ class FamilyTreeStoreService
     private function createOrGetPerson(array $data): Person
     {
         // Jika ada selected_person_id, ambil dari database
-        if (!empty($data['selected_person_id'])) {
+        if (! empty($data['selected_person_id'])) {
             $person = Person::find($data['selected_person_id']);
             if ($person) {
                 return $person;
@@ -89,21 +89,21 @@ class FamilyTreeStoreService
 
         // Buat person baru
         $birthDate = null;
-        if (!empty($data['birth_year'])) {
+        if (! empty($data['birth_year'])) {
             $month = $data['birth_month'] ?? 1;
             $day = 1;
             $birthDate = Carbon::createFromDate($data['birth_year'], $month, $day)->format('Y-m-d');
         }
 
         return Person::create([
-            'full_name'   => $data['full_name'],
-            'nickname'    => $data['nickname'] ?? null,
-            'gender'      => $data['gender'],
-            'birth_date'  => $birthDate,
-            'death_date'  => $data['death_date'] ?? null,
+            'full_name' => $data['full_name'],
+            'nickname' => $data['nickname'] ?? null,
+            'gender' => $data['gender'],
+            'birth_date' => $birthDate,
+            'death_date' => $data['death_date'] ?? null,
             'birth_place' => $data['birth_place'] ?? null,
-            'photo_path'  => $data['photo_path'] ?? null,
-            'bio'         => $data['bio'] ?? null,
+            'photo_path' => $data['photo_path'] ?? null,
+            'bio' => $data['bio'] ?? null,
         ]);
     }
 
@@ -116,7 +116,7 @@ class FamilyTreeStoreService
     private function validateSpouse(array $data): void
     {
         $related = Person::find($data['related_person_id']);
-        if (!$related) {
+        if (! $related) {
             throw ValidationException::withMessages([
                 'related_person_id' => ['Data orang yang dirujuk tidak ditemukan.'],
             ]);
@@ -124,13 +124,13 @@ class FamilyTreeStoreService
 
         if ($related->gender === $data['gender']) {
             throw ValidationException::withMessages([
-                'gender' => ['Gender pasangan harus berbeda dengan ' . $related->full_name . '.'],
+                'gender' => ['Gender pasangan harus berbeda dengan '.$related->full_name.'.'],
             ]);
         }
 
-        if (!$this->canAddSpouse($related)) {
+        if (! $this->canAddSpouse($related)) {
             throw ValidationException::withMessages([
-                'related_person_id' => [$related->full_name . ' masih memiliki pasangan aktif, tidak bisa menambah pasangan baru.'],
+                'related_person_id' => [$related->full_name.' masih memiliki pasangan aktif, tidak bisa menambah pasangan baru.'],
             ]);
         }
 
@@ -140,7 +140,7 @@ class FamilyTreeStoreService
     private function validateParent(array $data): void
     {
         $child = Person::find($data['related_person_id']);
-        if (!$child) {
+        if (! $child) {
             throw ValidationException::withMessages([
                 'related_person_id' => ['Data anak tidak ditemukan.'],
             ]);
@@ -167,7 +167,7 @@ class FamilyTreeStoreService
     private function validateChild(array $data): void
     {
         $parent = Person::find($data['related_person_id']);
-        if (!$parent) {
+        if (! $parent) {
             throw ValidationException::withMessages([
                 'related_person_id' => ['Data orang tua tidak ditemukan.'],
             ]);
@@ -186,18 +186,18 @@ class FamilyTreeStoreService
             ]);
         }
 
-        if (!empty($data['spouse_id'])) {
+        if (! empty($data['spouse_id'])) {
             $spouseIds = collect($spouses)->pluck('id')->all();
-            if (!in_array((int) $data['spouse_id'], $spouseIds, true)) {
+            if (! in_array((int) $data['spouse_id'], $spouseIds, true)) {
                 throw ValidationException::withMessages([
                     'spouse_id' => ['spouse_id yang dipilih bukan pasangan yang valid dari related_person_id.'],
                 ]);
             }
         }
 
-        if (!empty($data['additional_parent_id'])) {
+        if (! empty($data['additional_parent_id'])) {
             $additionalParent = Person::find($data['additional_parent_id']);
-            if (!$additionalParent) {
+            if (! $additionalParent) {
                 throw ValidationException::withMessages([
                     'additional_parent_id' => ['Data orang tua tambahan tidak ditemukan.'],
                 ]);
@@ -229,11 +229,12 @@ class FamilyTreeStoreService
             $marriage = $map->get($other->id);
             $data = $this->formatPersonCompact($other);
             $data['marriage'] = [
-                'marriage_id'    => $marriage->id,
-                'marriage_date'  => optional($marriage->marriage_date)->format('Y-m-d'),
-                'divorce_date'   => optional($marriage->divorce_date)->format('Y-m-d'),
-                'is_divorced'    => !is_null($marriage->divorce_date),
+                'marriage_id' => $marriage->id,
+                'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
+                'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
+                'is_divorced' => ! is_null($marriage->divorce_date),
             ];
+
             return $data;
         })->values()->toArray();
     }
@@ -289,10 +290,10 @@ class FamilyTreeStoreService
         $spouses = $this->getSpouses($personId);
 
         return [
-            'person'          => $this->formatPersonCompact($person),
-            'spouse_options'  => $spouses,
+            'person' => $this->formatPersonCompact($person),
+            'spouse_options' => $spouses,
             'requires_spouse_selection' => count($spouses) > 1,
-            'can_add_child'   => $this->canAddChild($personId),
+            'can_add_child' => $this->canAddChild($personId),
         ];
     }
 
@@ -310,7 +311,7 @@ class FamilyTreeStoreService
 
         $spouses = $this->getSpouses($person->id);
         foreach ($spouses as $spouse) {
-            if (!$spouse['marriage']['is_divorced']) {
+            if (! $spouse['marriage']['is_divorced']) {
                 return false;
             }
         }
@@ -321,13 +322,15 @@ class FamilyTreeStoreService
     private function canAddParent(int $personId): bool
     {
         $parentCount = ParentChildRelation::where('child_id', $personId)->count();
+
         return $parentCount < 2;
     }
 
     private function canAddChild(int $personId): bool
     {
         $spouses = $this->getSpouses($personId);
-        return !empty($spouses);
+
+        return ! empty($spouses);
     }
 
     /*
@@ -359,11 +362,11 @@ class FamilyTreeStoreService
         }
 
         $marriage = Marriage::create([
-            'husband_id'    => $husband->id,
-            'wife_id'       => $wife->id,
+            'husband_id' => $husband->id,
+            'wife_id' => $wife->id,
             'marriage_date' => $data['marriage_date'] ?? null,
-            'divorce_date'  => $data['divorce_date'] ?? null,
-            'notes'         => $data['notes'] ?? null,
+            'divorce_date' => $data['divorce_date'] ?? null,
+            'notes' => $data['notes'] ?? null,
         ]);
 
         return $this->formatMarriage($marriage, $husband, $wife);
@@ -376,11 +379,11 @@ class FamilyTreeStoreService
                 ->where('child_id', $childId)
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 ParentChildRelation::create([
                     'parent_id' => $spouseId,
-                    'child_id'  => $childId,
-                    'type'      => 'biological',
+                    'child_id' => $childId,
+                    'type' => 'biological',
                 ]);
             }
         }
@@ -395,15 +398,15 @@ class FamilyTreeStoreService
 
         ParentChildRelation::create([
             'parent_id' => $parentId,
-            'child_id'  => $child->id,
-            'type'      => $relationType,
+            'child_id' => $child->id,
+            'type' => $relationType,
         ]);
 
         if ($secondParentId) {
             ParentChildRelation::create([
                 'parent_id' => $secondParentId,
-                'child_id'  => $child->id,
-                'type'      => $relationType,
+                'child_id' => $child->id,
+                'type' => $relationType,
             ]);
         }
     }
@@ -416,11 +419,11 @@ class FamilyTreeStoreService
             ->where('child_id', $childId)
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             ParentChildRelation::create([
                 'parent_id' => $parentId,
-                'child_id'  => $childId,
-                'type'      => $relationType,
+                'child_id' => $childId,
+                'type' => $relationType,
             ]);
         }
     }
@@ -431,8 +434,8 @@ class FamilyTreeStoreService
 
         ParentChildRelation::create([
             'parent_id' => $newParent->id,
-            'child_id'  => $childId,
-            'type'      => $relationType,
+            'child_id' => $childId,
+            'type' => $relationType,
         ]);
 
         $existingParents = ParentChildRelation::where('child_id', $childId)
@@ -445,7 +448,7 @@ class FamilyTreeStoreService
             fn (Person $p) => $p->id !== $newParent->id && $p->gender !== $newParent->gender
         );
 
-        if (!$otherParent) {
+        if (! $otherParent) {
             return null;
         }
 
@@ -461,13 +464,13 @@ class FamilyTreeStoreService
             ->where('wife_id', $wife->id)
             ->exists();
 
-        if (!$alreadyMarried) {
+        if (! $alreadyMarried) {
             $marriage = Marriage::create([
-                'husband_id'    => $husband->id,
-                'wife_id'       => $wife->id,
+                'husband_id' => $husband->id,
+                'wife_id' => $wife->id,
                 'marriage_date' => $data['marriage_date'] ?? null,
-                'divorce_date'  => $data['divorce_date'] ?? null,
-                'notes'         => $data['notes'] ?? null,
+                'divorce_date' => $data['divorce_date'] ?? null,
+                'notes' => $data['notes'] ?? null,
             ]);
 
             return $this->formatMarriage($marriage, $husband, $wife, true);
@@ -485,37 +488,37 @@ class FamilyTreeStoreService
     private function formatPersonCompact(Person $person): array
     {
         return [
-            'id'           => $person->id,
-            'uuid'         => $person->uuid,
-            'person_code'  => $person->person_code,
-            'full_name'    => $person->full_name,
-            'nickname'     => $person->nickname,
-            'gender'       => $person->gender,
-            'birth_date'   => optional($person->birth_date)->format('Y-m-d'),
-            'death_date'   => optional($person->death_date)->format('Y-m-d'),
-            'age'          => $this->calculateAge($person),
-            'is_deceased'  => !is_null($person->death_date),
-            'birth_place'  => $person->birth_place,
-            'photo_path'   => $person->photo_path,
+            'id' => $person->id,
+            'uuid' => $person->uuid,
+            'person_code' => $person->person_code,
+            'full_name' => $person->full_name,
+            'nickname' => $person->nickname,
+            'gender' => $person->gender,
+            'birth_date' => optional($person->birth_date)->format('Y-m-d'),
+            'death_date' => optional($person->death_date)->format('Y-m-d'),
+            'age' => $this->calculateAge($person),
+            'is_deceased' => ! is_null($person->death_date),
+            'birth_place' => $person->birth_place,
+            'photo_path' => $person->photo_path,
         ];
     }
 
     private function formatMarriage(Marriage $marriage, Person $husband, Person $wife, bool $autoCreated = false): array
     {
         return [
-            'marriage_id'    => $marriage->id,
-            'husband'        => $this->formatPersonCompact($husband),
-            'wife'           => $this->formatPersonCompact($wife),
-            'marriage_date'  => optional($marriage->marriage_date)->format('Y-m-d'),
-            'divorce_date'   => optional($marriage->divorce_date)->format('Y-m-d'),
-            'is_divorced'    => !is_null($marriage->divorce_date),
-            'auto_created'   => $autoCreated,
+            'marriage_id' => $marriage->id,
+            'husband' => $this->formatPersonCompact($husband),
+            'wife' => $this->formatPersonCompact($wife),
+            'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
+            'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
+            'is_divorced' => ! is_null($marriage->divorce_date),
+            'auto_created' => $autoCreated,
         ];
     }
 
     private function calculateAge(Person $person): ?int
     {
-        if (!$person->birth_date) {
+        if (! $person->birth_date) {
             return null;
         }
 
@@ -526,7 +529,7 @@ class FamilyTreeStoreService
 
     private function assertAdultForMarriage(Person $person): void
     {
-        if (!$person->birth_date) {
+        if (! $person->birth_date) {
             return;
         }
 
@@ -534,7 +537,7 @@ class FamilyTreeStoreService
 
         if ($age < self::MIN_SPOUSE_AGE) {
             throw ValidationException::withMessages([
-                'related_person_id' => ["{$person->full_name} berumur {$age} tahun, minimal harus " . self::MIN_SPOUSE_AGE . ' tahun untuk ditambahkan sebagai pasangan.'],
+                'related_person_id' => ["{$person->full_name} berumur {$age} tahun, minimal harus ".self::MIN_SPOUSE_AGE.' tahun untuk ditambahkan sebagai pasangan.'],
             ]);
         }
     }

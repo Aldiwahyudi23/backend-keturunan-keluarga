@@ -10,8 +10,7 @@ class BookPdfService
 {
     public function __construct(
         protected BookDataService $bookDataService
-    ) {
-    }
+    ) {}
 
     /**
      * Preview PDF.
@@ -36,7 +35,7 @@ class BookPdfService
             ->setPaper('a4', 'portrait');
 
         return $pdf->stream(
-            str($book->title)->slug() . '.pdf'
+            str($book->title)->slug().'.pdf'
         );
     }
 
@@ -63,7 +62,7 @@ class BookPdfService
             ->setPaper('a4', 'portrait');
 
         return $pdf->download(
-            str($book->title)->slug() . '.pdf'
+            str($book->title)->slug().'.pdf'
         );
     }
 }

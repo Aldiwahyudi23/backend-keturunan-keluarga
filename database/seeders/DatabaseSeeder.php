@@ -23,10 +23,10 @@ class DatabaseSeeder extends Seeder
         // ]);
         $this->call([
             AdminUserSeeder::class,
-            
+
         ]);
     }
 }
 
-# Generate policies untuk semua resources
+// Generate policies untuk semua resources
 // php artisan shield:generate --all

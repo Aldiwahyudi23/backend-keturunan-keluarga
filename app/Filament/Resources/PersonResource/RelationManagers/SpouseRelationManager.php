@@ -2,34 +2,30 @@
 
 namespace App\Filament\Resources\PersonResource\RelationManagers;
 
-use App\Models\Person;
 use App\Models\Marriage;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Table;
+use App\Models\Person;
+use Carbon\Carbon;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\ToggleButtons;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Get;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Form;
 use Filament\Forms\Set;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ImageColumn;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
-use Filament\Tables\Actions\Action as TableAction;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Exceptions\Halt;
-use Carbon\Carbon;
+use Filament\Tables;
+use Filament\Tables\Actions\Action as TableAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class SpouseRelationManager extends RelationManager
 {
@@ -54,10 +50,12 @@ class SpouseRelationManager extends RelationManager
                                 Placeholder::make('person_info')
                                     ->label(function () {
                                         $person = $this->getOwnerRecord();
+
                                         return $person->gender === 'male' ? 'Suami' : 'Istri';
                                     })
                                     ->content(function () {
                                         $person = $this->getOwnerRecord();
+
                                         return "👤 {$person->full_name} ({$person->person_code})";
                                     })
                                     ->columnSpan(1),
@@ -83,25 +81,25 @@ class SpouseRelationManager extends RelationManager
                         // Pilih Pasangan yang sudah ada dengan tombol +
                         Section::make('Pilih Pasangan yang Sudah Ada')
                             ->schema([
-                            Select::make('existing_spouse_id')
-                                ->label('Cari Pasangan')
-                                ->options(function () {
-                                    $person = $this->getOwnerRecord();
-                                    $oppositeGender = $person->gender === 'male' ? 'female' : 'male';
+                                Select::make('existing_spouse_id')
+                                    ->label('Cari Pasangan')
+                                    ->options(function () {
+                                        $person = $this->getOwnerRecord();
+                                        $oppositeGender = $person->gender === 'male' ? 'female' : 'male';
 
-                                    return Person::with('fatherRelation.parent')
-                                        ->where('id', '!=', $person->id)
-                                        ->where('gender', $oppositeGender)
-                                        ->orderBy('full_name')
-                                        ->get()
-                                        ->mapWithKeys(function (Person $person) {
-                                            return [
-                                                $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
-                                            ];
-                                        })
-                                        ->toArray();
-                                })
-                                ->searchable()
+                                        return Person::with('fatherRelation.parent')
+                                            ->where('id', '!=', $person->id)
+                                            ->where('gender', $oppositeGender)
+                                            ->orderBy('full_name')
+                                            ->get()
+                                            ->mapWithKeys(function (Person $person) {
+                                                return [
+                                                    $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->searchable()
                                     ->preload()
                                     ->live()
                                     ->placeholder('Ketik untuk mencari pasangan...')
@@ -144,6 +142,7 @@ class SpouseRelationManager extends RelationManager
                                                                     ->inline()
                                                                     ->default(function () {
                                                                         $person = $this->getOwnerRecord();
+
                                                                         return $person->gender === 'male' ? 'female' : 'male';
                                                                     })
                                                                     ->disabled()
@@ -200,7 +199,7 @@ class SpouseRelationManager extends RelationManager
                                                     DB::beginTransaction();
 
                                                     $birthDate = null;
-                                                    if (!empty($data['birth_year']) && !empty($data['birth_month'])) {
+                                                    if (! empty($data['birth_year']) && ! empty($data['birth_month'])) {
                                                         $birthDate = Carbon::createFromDate(
                                                             $data['birth_year'],
                                                             $data['birth_month'],
@@ -282,11 +281,13 @@ class SpouseRelationManager extends RelationManager
                     ->circular()
                     ->state(function ($record) {
                         $partner = $this->getPartner($record);
+
                         return $partner?->photo_path;
                     })
                     ->defaultImageUrl(function ($record) {
                         $partner = $this->getPartner($record);
-                        return 'https://ui-avatars.com/api/?name=' . urlencode($partner?->full_name ?? '?') . '&color=7F9CF5&background=EBF4FF';
+
+                        return 'https://ui-avatars.com/api/?name='.urlencode($partner?->full_name ?? '?').'&color=7F9CF5&background=EBF4FF';
                     })
                     ->size(40),
 
@@ -380,8 +381,8 @@ class SpouseRelationManager extends RelationManager
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->url(fn ($record) => route('filament.admin.resources.people.view', $this->getPartner($record)))
-                    // ->openUrlInNewTab()
-                    ,
+                // ->openUrlInNewTab()
+                ,
 
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
@@ -441,7 +442,7 @@ class SpouseRelationManager extends RelationManager
         DB::beginTransaction();
         try {
             $spouse = Person::find($data['existing_spouse_id']);
-            if (!$spouse) {
+            if (! $spouse) {
                 throw new \Exception('Data pasangan tidak ditemukan.');
             }
 
@@ -493,7 +494,7 @@ class SpouseRelationManager extends RelationManager
 
             // Hentikan action secara halus (modal tetap terbuka,
             // tidak memicu halaman error Laravel)
-            throw new Halt();
+            throw new Halt;
         }
     }
 }

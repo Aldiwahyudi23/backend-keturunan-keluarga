@@ -3,15 +3,17 @@
 namespace App\Filament\Resources\API\ApiAccountResource\RelationManagers;
 
 use Filament\Forms;
-use Filament\Tables;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
 use Illuminate\Support\HtmlString;
 
 class ServiceTokensRelationManager extends RelationManager
 {
     protected static string $relationship = 'tokens';
+
     protected static ?string $title = 'API Tokens';
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public function table(Tables\Table $table): Tables\Table
@@ -50,7 +52,7 @@ class ServiceTokensRelationManager extends RelationManager
                         Forms\Components\CheckboxList::make('abilities')
                             ->label('API Permissions')
                             ->options([
-                                'vehicles:read'   => 'Read vehicles',
+                                'vehicles:read' => 'Read vehicles',
                                 'vehicles:create' => 'Create vehicles',
                                 'vehicles:update' => 'Update vehicles',
                                 'vehicles:delete' => 'Delete vehicles',
@@ -71,9 +73,9 @@ class ServiceTokensRelationManager extends RelationManager
                             ->success()
                             ->body(
                                 new HtmlString(
-                                    '<strong>Copy this token now:</strong><br>' .
-                                    '<code style="word-break: break-all;">' .
-                                    $token->plainTextToken .
+                                    '<strong>Copy this token now:</strong><br>'.
+                                    '<code style="word-break: break-all;">'.
+                                    $token->plainTextToken.
                                     '</code>'
                                 )
                             )

@@ -13,8 +13,7 @@ class BookDataService
     public function __construct(
         protected GenealogyService $genealogyService,
         protected HistoryService $historyService,
-    ) {
-    }
+    ) {}
 
     /**
      * Menyusun seluruh data buku.

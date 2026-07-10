@@ -3,25 +3,25 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+
 // use Spatie\EloquentSortable\SortableTrait;
 
 class ParentChildRelation extends Model
 {
-
     // use SortableTrait;
 
     protected $fillable = [
         'parent_id',
         'child_id',
         'type',
-        'sort'
+        'sort',
     ];
 
     protected $appends = [
         'type_label',
     ];
 
-        /**
+    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>

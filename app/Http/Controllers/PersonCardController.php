@@ -10,8 +10,7 @@ class PersonCardController extends Controller
 {
     public function __construct(
         protected PersonCardService $service
-    ) {
-    }
+    ) {}
 
     /**
      * Preview.

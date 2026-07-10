@@ -11,19 +11,26 @@ class GenerateServiceToken extends Page implements Forms\Contracts\HasForms
 {
     use Forms\Concerns\InteractsWithForms;
 
-    //Hidden Navigation\
-    protected static bool $shouldRegisterNavigation = false; //Hidden from navigation
+    // Hidden Navigation\
+    protected static bool $shouldRegisterNavigation = false; // Hidden from navigation
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
+
     protected static ?string $navigationLabel = 'Generate API Token';
+
     protected static ?string $navigationGroup = 'Service Management API';
+
     protected static ?string $title = 'Generate Service Token';
+
     protected static string $view = 'filament.pages.generate-service-token';
 
     // FORM STATE
     public ?int $service_user_id = null;
+
     public string $tokenName = '';
+
     public array $abilities = [];
+
     public ?string $plainToken = null;
 
     protected function getFormSchema(): array
@@ -47,7 +54,7 @@ class GenerateServiceToken extends Page implements Forms\Contracts\HasForms
             Forms\Components\CheckboxList::make('abilities')
                 ->label('API Permissions')
                 ->options([
-                    'vehicles:read'   => 'Read vehicles',
+                    'vehicles:read' => 'Read vehicles',
                     'vehicles:create' => 'Create vehicles',
                     'vehicles:update' => 'Update vehicles',
                     'vehicles:delete' => 'Delete vehicles',
@@ -68,6 +75,7 @@ class GenerateServiceToken extends Page implements Forms\Contracts\HasForms
                 ->title('Invalid service account')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -77,6 +85,7 @@ class GenerateServiceToken extends Page implements Forms\Contracts\HasForms
                 ->body('Please select at least one permission.')
                 ->danger()
                 ->send();
+
             return;
         }
 

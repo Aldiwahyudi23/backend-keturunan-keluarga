@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Person;
 use App\Models\Marriage;
+use App\Models\Person;
 use Illuminate\Support\Collection;
 
 class FamilyRelationshipService
@@ -17,10 +17,10 @@ class FamilyRelationshipService
         $ancestorsB = $this->getAncestors($personB);
         $common = $this->findNearestCommonAncestor($ancestorsA, $ancestorsB);
 
-        if (!$common) {
+        if (! $common) {
             return [
                 'related' => false,
-                'message' => 'Tidak ditemukan hubungan keluarga.'
+                'message' => 'Tidak ditemukan hubungan keluarga.',
             ];
         }
 
@@ -54,7 +54,7 @@ class FamilyRelationshipService
         $result[$person->id] = [
             'person' => $person,
             'level' => $level,
-            'path' => $path
+            'path' => $path,
         ];
 
         foreach ($person->parents as $parent) {
@@ -72,14 +72,14 @@ class FamilyRelationshipService
         $nearest = null;
 
         foreach ($a as $personId => $ancestorA) {
-            if (!isset($b[$personId])) {
+            if (! isset($b[$personId])) {
                 continue;
             }
 
             $ancestorB = $b[$personId];
             $distance = $ancestorA['level'] + $ancestorB['level'];
 
-            if (!$nearest || $distance < $nearest['distance']) {
+            if (! $nearest || $distance < $nearest['distance']) {
                 $nearest = [
                     'person' => $ancestorA['person'],
                     'level_a' => $ancestorA['level'],
@@ -129,37 +129,37 @@ class FamilyRelationshipService
     {
         $ancestor = $common['person']->full_name;
         $relationship = $this->detectRelationship($common['level_a'], $common['level_b']);
-        
+
         // Get names from paths (first element is the person itself)
         $personAName = $common['path_a'][0] ?? 'Orang pertama';
         $personBName = $common['path_b'][0] ?? 'Orang kedua';
-        
+
         // Get spouse of ancestor
         $spouseName = $this->getSpouseInfo($ancestor);
-        
+
         // Get relevant children of ancestor (only those in the paths)
         $relevantChildren = $this->getRelevantChildren($common['path_a'], $common['path_b']);
-        
+
         // Build intro paragraph about ancestor
         $introText = $ancestor;
         if ($spouseName) {
             $introText .= " menikah dengan {$spouseName}";
         }
-        if (!empty($relevantChildren)) {
-            $introText .= " dan dikaruniai beberapa anak";
+        if (! empty($relevantChildren)) {
+            $introText .= ' dan dikaruniai beberapa anak';
             if (count($relevantChildren) > 1) {
                 $lastChild = array_pop($relevantChildren);
-                $introText .= " salah satunya adalah <strong>" . implode("</strong>, <strong>", $relevantChildren) . "</strong> dan <strong>{$lastChild}</strong>";
+                $introText .= ' salah satunya adalah <strong>'.implode('</strong>, <strong>', $relevantChildren)."</strong> dan <strong>{$lastChild}</strong>";
             } else {
                 $introText .= " salah satunya adalah <strong>{$relevantChildren[0]}</strong>";
             }
         }
-        $introText .= ". Nah ini bakal cikal hubungan kalian.";
-        
+        $introText .= '. Nah ini bakal cikal hubungan kalian.';
+
         // Build detailed narrative for both paths
         $pathANarrative = $this->buildPathNarrative($common['path_a'], $personAName, $ancestor);
         $pathBNarrative = $this->buildPathNarrative($common['path_b'], $personBName, $ancestor);
-        
+
         $html = <<<HTML
         <p><strong>Hubungan Keluarga</strong></p>
         
@@ -177,7 +177,7 @@ class FamilyRelationshipService
         
         <p style="text-align: right;"><em><strong>~ Bersama kita kuat, saling menjaga kita bahagia ~</strong></em></p>
         HTML;
-        
+
         return $html;
     }
 
@@ -187,26 +187,26 @@ class FamilyRelationshipService
     private function getRelevantChildren(array $pathA, array $pathB): array
     {
         $children = [];
-        
+
         // Reverse paths to start from ancestor
         $reversedA = array_reverse($pathA);
         $reversedB = array_reverse($pathB);
-        
+
         // Get the first child after ancestor from both paths
         if (count($reversedA) > 1) {
             $childA = $reversedA[1];
-            if (!in_array($childA, $children)) {
+            if (! in_array($childA, $children)) {
                 $children[] = $childA;
             }
         }
-        
+
         if (count($reversedB) > 1) {
             $childB = $reversedB[1];
-            if (!in_array($childB, $children)) {
+            if (! in_array($childB, $children)) {
                 $children[] = $childB;
             }
         }
-        
+
         return $children;
     }
 
@@ -218,33 +218,34 @@ class FamilyRelationshipService
         // Reverse path to start from ancestor
         $reversedPath = array_reverse($path);
         $count = count($reversedPath);
-        
+
         if ($count <= 1) {
             return "{$targetPerson} adalah leluhur itu sendiri.";
         }
-        
+
         // Get the first child after ancestor
         $firstChild = $reversedPath[1] ?? '';
-        
+
         // Check if target is directly the child of ancestor (only 2 generations)
         if ($count === 2) {
             // Target is the child of ancestor
             $result = "<strong>{$targetPerson}</strong> adalah anak dari <strong>{$ancestor}</strong>";
-            return $result . ".";
+
+            return $result.'.';
         }
-        
+
         // For 3+ generations, build narrative with spouse info
         $storyParts = [];
-        
+
         // Build narrative with correct spouse for each generation
         for ($i = 1; $i < $count; $i++) {
             $currentPerson = $reversedPath[$i];
             $nextPerson = $i + 1 < $count ? $reversedPath[$i + 1] : null;
-            
+
             if ($i === 1) {
                 // First child of ancestor
                 $storyParts[] = "<strong>{$currentPerson}</strong>";
-                
+
                 if ($nextPerson) {
                     // Get the correct spouse based on the child
                     $correctSpouse = $this->getSpouseForChild($currentPerson, $nextPerson);
@@ -253,13 +254,13 @@ class FamilyRelationshipService
                     }
                     $storyParts[] = "dan memiliki anak yaitu <strong>{$nextPerson}</strong>";
                 }
-            } else if ($i === $count - 1) {
+            } elseif ($i === $count - 1) {
                 // Last person is the target - already handled
                 break;
             } else {
                 // Middle generations
                 $nextPerson2 = $i + 1 < $count ? $reversedPath[$i + 1] : null;
-                
+
                 if ($nextPerson2) {
                     $correctSpouse = $this->getSpouseForChild($currentPerson, $nextPerson2);
                     if ($correctSpouse) {
@@ -269,13 +270,13 @@ class FamilyRelationshipService
                 }
             }
         }
-        
+
         $result = implode(' ', $storyParts);
-        
+
         // Add conclusion with correct generation label
         $generationLabel = $this->getSimplifiedGenerationLabel($count - 1);
         $result .= ". Dengan demikian, <strong>{$targetPerson}</strong> adalah {$generationLabel} dari <strong>{$ancestor}</strong>.";
-        
+
         return $result;
     }
 
@@ -285,24 +286,24 @@ class FamilyRelationshipService
     private function getSpouseForChild(string $parentName, string $childName): ?string
     {
         $parent = Person::where('full_name', $parentName)->first();
-        
-        if (!$parent) {
+
+        if (! $parent) {
             return null;
         }
-        
+
         $child = Person::where('full_name', $childName)->first();
-        
-        if (!$child) {
+
+        if (! $child) {
             return null;
         }
-        
+
         // Get all marriages of the parent
         $marriages = $this->getMarriagesForPerson($parent);
-        
+
         if ($marriages->isEmpty()) {
             return null;
         }
-        
+
         // Find which spouse is the parent of the child
         foreach ($marriages as $marriage) {
             // Check if this marriage produced the child
@@ -311,7 +312,7 @@ class FamilyRelationshipService
                 return $spouse->full_name;
             }
         }
-        
+
         // Fallback: if no marriage found, try to find any spouse that is parent of child
         $spouses = $this->getAllSpouses($parent);
         foreach ($spouses as $spouse) {
@@ -319,14 +320,15 @@ class FamilyRelationshipService
                 return $spouse->full_name;
             }
         }
-        
+
         // If still not found, return first spouse
         $firstSpouse = $marriages->first();
         if ($firstSpouse) {
             $spouse = $this->getSpouseFromMarriage($parent, $firstSpouse);
+
             return $spouse ? $spouse->full_name : null;
         }
-        
+
         return null;
     }
 
@@ -340,7 +342,7 @@ class FamilyRelationshipService
         } elseif ($person->gender === 'female') {
             return $person->marriagesAsWife;
         }
-        
+
         return collect();
     }
 
@@ -354,7 +356,7 @@ class FamilyRelationshipService
         } elseif ($person->gender === 'female') {
             return $marriage->husband;
         }
-        
+
         return null;
     }
 
@@ -365,13 +367,13 @@ class FamilyRelationshipService
     {
         // Check if the child has this person as parent
         $parents = $child->parents()->get();
-        
+
         foreach ($parents as $childParent) {
             if ($childParent->id === $parent->id) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -387,7 +389,7 @@ class FamilyRelationshipService
                 ->pluck('wife')
                 ->filter();
         }
-        
+
         if ($person->gender === 'female') {
             return $person->marriagesAsWife()
                 ->with('husband')
@@ -395,7 +397,7 @@ class FamilyRelationshipService
                 ->pluck('husband')
                 ->filter();
         }
-        
+
         return collect();
     }
 
@@ -406,24 +408,24 @@ class FamilyRelationshipService
     private function getSpouseInfo(string $personName): ?string
     {
         $person = Person::where('full_name', $personName)->first();
-        
-        if (!$person) {
+
+        if (! $person) {
             return null;
         }
-        
+
         // Get all spouses
         $spouses = $this->getAllSpouses($person);
-        
+
         if ($spouses->isEmpty()) {
             return null;
         }
-        
+
         // Get the first spouse
         $spouse = $spouses->first();
-        if (!$spouse) {
+        if (! $spouse) {
             return null;
         }
-        
+
         return $spouse->full_name;
     }
 
@@ -441,7 +443,7 @@ class FamilyRelationshipService
             5 => 'piut',
             6 => 'anggkat',
         ];
-        
+
         return $labels[$level] ?? "generasi ke-{$level}";
     }
 }

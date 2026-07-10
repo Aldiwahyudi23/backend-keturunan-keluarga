@@ -20,9 +20,13 @@ class ApiAccountResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+
     protected static ?string $navigationGroup = 'Service Management API';
+
     protected static ?string $navigationLabel = 'Service API';
+
     protected static ?string $title = 'Service API Accounts';
+
     protected static ?int $navigationSort = 2;
 
     /**
@@ -61,7 +65,7 @@ class ApiAccountResource extends Resource
                         ->trim();
 
                     // set ulang dengan suffix
-                    $set('name', $clean . '-service');
+                    $set('name', $clean.'-service');
                 })
                 ->helperText('Akan otomatis ditambahkan "-service"'),
 
@@ -129,7 +133,7 @@ class ApiAccountResource extends Resource
     {
         return [
             'index' => Pages\ListApiAccounts::route('/'),
-            'edit'  => Pages\EditApiAccount::route('/{record}/edit'),
+            'edit' => Pages\EditApiAccount::route('/{record}/edit'),
             // 'create' => Pages\CreateApiAccount::route('/create'),
         ];
     }

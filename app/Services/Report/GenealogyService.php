@@ -9,16 +9,15 @@ class GenealogyService
 {
     /**
      * Generate keturunan berdasarkan UUID person
-     * 
-     * @param string $uuid UUID dari person
-     * @param int $maxGenerations Maksimal generasi yang di-fetch (default: unlimited)
-     * @return array
+     *
+     * @param  string  $uuid  UUID dari person
+     * @param  int  $maxGenerations  Maksimal generasi yang di-fetch (default: unlimited)
      */
     public function generateGeneology(string $uuid, int $maxGenerations = 0): array
     {
         $person = Person::where('uuid', $uuid)->first();
 
-        if (!$person) {
+        if (! $person) {
             return [
                 'success' => false,
                 'message' => 'Person tidak ditemukan',
@@ -32,7 +31,7 @@ class GenealogyService
         // Format generasi sesuai yang diinginkan
         $generations = [];
         foreach ($allGenerations as $generationNumber => $generationData) {
-            $generationKey = "Generasi " . $this->convertNumberToRoman($generationNumber);
+            $generationKey = 'Generasi '.$this->convertNumberToRoman($generationNumber);
             $generations[$generationKey] = $generationData;
         }
 
@@ -48,11 +47,9 @@ class GenealogyService
 
     /**
      * Kumpulkan semua generasi dengan grouping berdasarkan pasangan
-     * 
-     * @param Person $person
-     * @param int $generationNumber Nomor generasi (1 = anak, 2 = cucu, dst)
-     * @param int $maxGenerations Maksimal generasi (0 = unlimited)
-     * @return array
+     *
+     * @param  int  $generationNumber  Nomor generasi (1 = anak, 2 = cucu, dst)
+     * @param  int  $maxGenerations  Maksimal generasi (0 = unlimited)
      */
     private function collectGenerations(Person $person, int $generationNumber, int $maxGenerations = 0): array
     {
@@ -79,15 +76,15 @@ class GenealogyService
         // Proses setiap group pasangan
         foreach ($childrenBySpouse as $spouseId => $group) {
             $counter++;
-            
+
             // Ambil data pasangan
             $spouse = $group['spouse'];
             $childrenList = $group['children'];
-            
+
             // Buat parent info
             $husband = null;
             $wife = null;
-            
+
             if ($person->gender === 'male') {
                 $husband = $person;
                 $wife = $spouse;
@@ -95,18 +92,18 @@ class GenealogyService
                 $husband = $spouse;
                 $wife = $person;
             }
-            
+
             $parentInfo = $this->buildParentInfo($husband, $wife);
-            
+
             // Buat data member untuk setiap anak
             $members = [];
             $childCounter = 0;
-            
+
             foreach ($childrenList as $child) {
                 $childCounter++;
-                $members[] = $this->buildPersonData($child, $generationNumber . '.' . $childCounter);
+                $members[] = $this->buildPersonData($child, $generationNumber.'.'.$childCounter);
             }
-            
+
             // Tambahkan ke generasi saat ini
             $result[$generationNumber][] = [
                 'parent_info' => $parentInfo,
@@ -118,10 +115,10 @@ class GenealogyService
         $nextGenerations = [];
         foreach ($children as $child) {
             $childGenerations = $this->collectGenerations($child, $generationNumber + 1, $maxGenerations);
-            
+
             // Merge hasil generasi berikutnya
             foreach ($childGenerations as $genNum => $groups) {
-                if (!isset($nextGenerations[$genNum])) {
+                if (! isset($nextGenerations[$genNum])) {
                     $nextGenerations[$genNum] = [];
                 }
                 $nextGenerations[$genNum] = array_merge($nextGenerations[$genNum], $groups);
@@ -130,7 +127,7 @@ class GenealogyService
 
         // Merge dengan hasil generasi berikutnya
         foreach ($nextGenerations as $genNum => $groups) {
-            if (!isset($result[$genNum])) {
+            if (! isset($result[$genNum])) {
                 $result[$genNum] = [];
             }
             $result[$genNum] = array_merge($result[$genNum], $groups);
@@ -141,9 +138,6 @@ class GenealogyService
 
     /**
      * Group children by spouse (pasangan)
-     * 
-     * @param Collection $children
-     * @return array
      */
     private function groupChildrenBySpouse(Collection $children): array
     {
@@ -152,17 +146,17 @@ class GenealogyService
         foreach ($children as $child) {
             // Cari pasangan dari orang tua anak
             $spouse = $this->findSpouseOfChild($child);
-            
+
             // Gunakan ID pasangan sebagai key, atau 'unknown' jika tidak ditemukan
             $key = $spouse ? $spouse->id : 'unknown';
-            
-            if (!isset($groups[$key])) {
+
+            if (! isset($groups[$key])) {
                 $groups[$key] = [
                     'spouse' => $spouse,
                     'children' => [],
                 ];
             }
-            
+
             $groups[$key]['children'][] = $child;
         }
 
@@ -171,19 +165,16 @@ class GenealogyService
 
     /**
      * Cari pasangan dari orang tua anak (berdasarkan parent-child relation)
-     * 
-     * @param Person $child
-     * @return Person|null
      */
     private function findSpouseOfChild(Person $child): ?Person
     {
         // Ambil semua parent dari anak
         $parents = $child->parents()->get();
-        
+
         if ($parents->count() < 2) {
             return null;
         }
-        
+
         // Cari pasangan (spouse) - ambil parent yang berbeda gender
         foreach ($parents as $parent1) {
             foreach ($parents as $parent2) {
@@ -197,16 +188,12 @@ class GenealogyService
                 }
             }
         }
-        
+
         return null;
     }
 
     /**
      * Cari pernikahan antara dua orang
-     * 
-     * @param Person $person1
-     * @param Person $person2
-     * @return \App\Models\Marriage|null
      */
     private function findMarriageBetween(Person $person1, Person $person2): ?\App\Models\Marriage
     {
@@ -214,25 +201,21 @@ class GenealogyService
         $marriage = \App\Models\Marriage::where('husband_id', $person1->id)
             ->where('wife_id', $person2->id)
             ->first();
-            
+
         if ($marriage) {
             return $marriage;
         }
-        
+
         // Cari pernikahan dimana person1 adalah istri dan person2 adalah suami
         $marriage = \App\Models\Marriage::where('husband_id', $person2->id)
             ->where('wife_id', $person1->id)
             ->first();
-            
+
         return $marriage;
     }
 
     /**
      * Build parent info string
-     * 
-     * @param Person|null $husband
-     * @param Person|null $wife
-     * @return string
      */
     private function buildParentInfo(?Person $husband, ?Person $wife): string
     {
@@ -243,15 +226,12 @@ class GenealogyService
         } elseif ($wife) {
             return "Pasangan {$wife->full_name}";
         }
-        
-        return "Pasangan";
+
+        return 'Pasangan';
     }
 
     /**
      * Build data root person dengan info lengkap
-     * 
-     * @param Person $person
-     * @return array
      */
     private function buildRootPersonData(Person $person): array
     {
@@ -276,9 +256,6 @@ class GenealogyService
 
     /**
      * Get all marriages for a person
-     * 
-     * @param Person $person
-     * @return Collection
      */
     private function getAllMarriages(Person $person): Collection
     {
@@ -291,11 +268,6 @@ class GenealogyService
 
     /**
      * Build marriage summary text
-     * 
-     * @param Person $person
-     * @param Collection $marriages
-     * @param int $totalChildren
-     * @return string
      */
     private function buildMarriageSummary(Person $person, Collection $marriages, int $totalChildren): string
     {
@@ -309,18 +281,18 @@ class GenealogyService
         foreach ($marriages as $marriage) {
             $spouse = $person->gender === 'male' ? $marriage->wife : $marriage->husband;
             $spouseName = $spouse ? $spouse->full_name : 'pasangan';
-            
+
             // Hitung anak dari pernikahan ini
             $childrenFromMarriage = $this->countChildrenFromMarriage($person, $spouse);
-            
+
             $status = $marriage->divorce_date ? 'pernah menikah dengan' : 'menikah dengan';
-            
+
             if ($childrenFromMarriage > 0) {
                 $summary[] = "{$person->full_name} {$status} {$spouseName} dan memperoleh {$childrenFromMarriage} orang anak.";
             } else {
                 $summary[] = "{$person->full_name} {$status} {$spouseName}.";
             }
-            
+
             $order++;
         }
 
@@ -329,14 +301,10 @@ class GenealogyService
 
     /**
      * Count children from a specific marriage
-     * 
-     * @param Person $person
-     * @param Person|null $spouse
-     * @return int
      */
     private function countChildrenFromMarriage(Person $person, ?Person $spouse): int
     {
-        if (!$spouse) {
+        if (! $spouse) {
             return 0;
         }
 
@@ -347,7 +315,7 @@ class GenealogyService
         foreach ($children as $child) {
             $parents = $child->parents()->get();
             $parentIds = $parents->pluck('id')->toArray();
-            
+
             if (in_array($person->id, $parentIds) && in_array($spouse->id, $parentIds)) {
                 $count++;
             }
@@ -358,10 +326,6 @@ class GenealogyService
 
     /**
      * Build marriages data
-     * 
-     * @param Person $person
-     * @param Collection $marriages
-     * @return array
      */
     private function buildMarriagesData(Person $person, Collection $marriages): array
     {
@@ -396,10 +360,6 @@ class GenealogyService
 
     /**
      * Build data seorang person dengan info lengkap
-     * 
-     * @param Person $person
-     * @param string $numbering
-     * @return array
      */
     private function buildPersonData(Person $person, string $numbering): array
     {
@@ -435,9 +395,6 @@ class GenealogyService
 
     /**
      * Konversi angka ke angka Romawi
-     * 
-     * @param int $num
-     * @return string
      */
     private function convertNumberToRoman(int $num): string
     {
@@ -471,9 +428,6 @@ class GenealogyService
 
     /**
      * Convert gender ke Bahasa Indonesia
-     * 
-     * @param string|null $gender
-     * @return string
      */
     private function convertGenderToIndonesian(?string $gender): string
     {
@@ -487,9 +441,8 @@ class GenealogyService
     /**
      * Format date ke format "Bulan Tahun"
      * Contoh: "Desember 1996"
-     * 
-     * @param \DateTime|\Illuminate\Support\Carbon $date
-     * @return string
+     *
+     * @param  \DateTime|\Illuminate\Support\Carbon  $date
      */
     private function formatDateToMonthYear($date): string
     {
@@ -512,18 +465,15 @@ class GenealogyService
         $month = (int) $date->format('m');
         $year = $date->format('Y');
 
-        return $monthsIndonesian[$month] . ' ' . $year;
+        return $monthsIndonesian[$month].' '.$year;
     }
 
     /**
      * Format response menjadi readable text untuk display/PDF
-     * 
-     * @param array $genealogyData
-     * @return string
      */
     public function formatAsText(array $genealogyData): string
     {
-        if (!$genealogyData['success']) {
+        if (! $genealogyData['success']) {
             return $genealogyData['message'];
         }
 
@@ -533,18 +483,18 @@ class GenealogyService
         // Header
         $output .= "═══════════════════════════════════════════════════════\n";
         $output .= "SILSILAH KETURUNAN\n";
-        $output .= "Mulai dari: " . $data['root_person']['full_name_with_nasab'] . "\n";
+        $output .= 'Mulai dari: '.$data['root_person']['full_name_with_nasab']."\n";
         $output .= "═══════════════════════════════════════════════════════\n\n";
 
         // Generasi-generasi
         foreach ($data['generations'] as $generationName => $groups) {
-            $output .= "\n" . strtoupper($generationName) . "\n";
-            $output .= str_repeat("─", 55) . "\n";
+            $output .= "\n".strtoupper($generationName)."\n";
+            $output .= str_repeat('─', 55)."\n";
 
             foreach ($groups as $group) {
                 $output .= "\n{$group['parent_info']}\n";
-                $output .= str_repeat("•", 30) . "\n";
-                
+                $output .= str_repeat('•', 30)."\n";
+
                 foreach ($group['members'] as $member) {
                     $output .= $this->formatMemberAsText($member, 2);
                 }
@@ -556,14 +506,10 @@ class GenealogyService
 
     /**
      * Format seorang member menjadi text
-     * 
-     * @param array $member
-     * @param int $indent
-     * @return string
      */
     private function formatMemberAsText(array $member, int $indent = 0): string
     {
-        $padding = str_repeat("  ", $indent);
+        $padding = str_repeat('  ', $indent);
         $output = '';
 
         // Data utama
@@ -573,7 +519,7 @@ class GenealogyService
         $output .= "{$padding}    Jenis Kel. : {$member['gender']}\n";
 
         // Informasi pernikahan
-        if (!empty($member['marriages'])) {
+        if (! empty($member['marriages'])) {
             foreach ($member['marriages'] as $marriage) {
                 $spouseName = isset($marriage['spouse']) ? $marriage['spouse']['full_name'] : '-';
                 $output .= "{$padding}    Pasangan   : {$spouseName}\n";

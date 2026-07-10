@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BookPdfController;
+use App\Http\Controllers\CardController;
 use App\Http\Controllers\PersonCardController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,14 @@ Route::middleware(['web', 'auth'])->prefix('books')->name('books.')->group(funct
         ->name('preview');
 
     Route::get('{book}/download', [BookPdfController::class, 'download'])
+        ->name('download');
+});
+
+Route::middleware(['web', 'auth'])->prefix('card')->name('card.')->group(function () {
+    Route::get('{card}', [CardController::class, 'preview'])
+        ->name('preview');
+
+    Route::get('{card}/download', [CardController::class, 'download'])
         ->name('download');
 });
 // Route::get('/', function () {

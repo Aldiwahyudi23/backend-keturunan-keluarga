@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -43,5 +43,5 @@ class AdminUserSeeder extends Seeder
     }
 }
 
-# Generate policies untuk semua resources
+// Generate policies untuk semua resources
 // php artisan shield:generate --all

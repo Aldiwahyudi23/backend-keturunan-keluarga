@@ -4,9 +4,8 @@ namespace App\Filament\Resources\ManagementUser;
 
 use App\Filament\Resources\ManagementUser\RoleResource\Pages;
 use App\Filament\Resources\ManagementUser\RoleResource\RelationManagers;
-use Filament\Forms;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,14 +14,17 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-shield-exclamation';
+
     protected static ?string $navigationGroup = 'User Management';
+
     protected static ?int $navigationSort = 2;
 
     /**
@@ -32,8 +34,8 @@ class RoleResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
-        if (!Auth::user()->hasRole('super_admin')) {
+
+        if (! Auth::user()->hasRole('super_admin')) {
             $query->where('name', '!=', 'super_admin');
         }
 
@@ -61,7 +63,7 @@ class RoleResource extends Resource
                             ->dehydrated(), // Tetap kirim data ke backend saat save
                     ])
                     ->columns(2),
-                
+
                 Section::make('Manajemen Izin')
                     ->description('Pilih izin untuk peran ini.')
                     ->schema([
@@ -69,14 +71,17 @@ class RoleResource extends Resource
                             ->label('')
                             ->options(function () {
                                 $permissions = Permission::all()->sortBy('name');
-                                $groups = config('permissions.groups', []); 
+                                $groups = config('permissions.groups', []);
                                 $result = [];
 
                                 foreach ($groups as $groupName => $keywords) {
                                     $filtered = $permissions->filter(function ($perm) use ($keywords) {
                                         foreach ($keywords as $keyword) {
-                                            if (str_contains($perm->name, $keyword)) return true;
+                                            if (str_contains($perm->name, $keyword)) {
+                                                return true;
+                                            }
                                         }
+
                                         return false;
                                     });
 
@@ -84,13 +89,14 @@ class RoleResource extends Resource
                                         $result[$groupName] = $filtered->pluck('name', 'id')->toArray();
                                     }
                                 }
+
                                 return $result;
                             })
                             ->bulkToggleable()
                             ->searchable()
                             ->columns(3)
                             ->relationship('permissions', 'name'),
-                            // 🔓 Bagian disabled dihapus agar permissions tetap bisa diedit
+                        // 🔓 Bagian disabled dihapus agar permissions tetap bisa diedit
                     ]),
             ]);
     }
@@ -103,31 +109,29 @@ class RoleResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
-                
+
                 TextColumn::make('permissions_count')
                     ->counts('permissions')
                     ->label('Permissions')
                     ->color('primary'),
-                
+
                 TextColumn::make('users_count')
                     ->counts('users')
                     ->label('Users'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                
+
                 // 🔒 Edit Action Logic
                 Tables\Actions\EditAction::make()
-                    ->visible(fn (Role $record) => 
-                        $record->name !== 'super_admin' || Auth::user()->hasRole('super_admin')
+                    ->visible(fn (Role $record) => $record->name !== 'super_admin' || Auth::user()->hasRole('super_admin')
                     ),
 
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->action(fn (Tables\Actions\DeleteBulkAction $action) => 
-                            $action->getRecords()->where('name', '!=', 'super_admin')->each->delete()
+                        ->action(fn (Tables\Actions\DeleteBulkAction $action) => $action->getRecords()->where('name', '!=', 'super_admin')->each->delete()
                         ),
                 ]),
             ]);

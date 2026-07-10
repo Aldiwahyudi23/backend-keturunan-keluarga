@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class Person extends Model
 {
@@ -16,7 +16,7 @@ class Person extends Model
     protected $table = 'people';
 
     protected $fillable = [
-        'uuid', 
+        'uuid',
         'person_code',
         'full_name',
         'nickname',
@@ -40,10 +40,10 @@ class Person extends Model
             if (empty($person->uuid)) {
                 $person->uuid = (string) Str::uuid();
             }
-            
+
             // Set person_code sementara (akan di-update setelah created)
             if (empty($person->person_code)) {
-                $person->person_code = 'PRS' . Str::random(6); // temporary
+                $person->person_code = 'PRS'.Str::random(6); // temporary
             }
         });
 
@@ -76,10 +76,10 @@ class Person extends Model
             'child_id',
             'id'
         )
-        ->where('type', 'biological')
-        ->whereHas('parent', function ($query) {
-            $query->where('gender', 'female');
-        });
+            ->where('type', 'biological')
+            ->whereHas('parent', function ($query) {
+                $query->where('gender', 'female');
+            });
     }
 
     /**
@@ -91,8 +91,8 @@ class Person extends Model
     }
 
     /**
-    * Relasi ke parent biologis laki-laki (Ayah).
-    */
+     * Relasi ke parent biologis laki-laki (Ayah).
+     */
     public function fatherRelation(): HasOne
     {
         return $this->hasOne(
@@ -100,10 +100,10 @@ class Person extends Model
             'child_id',
             'id'
         )
-        ->where('type', 'biological')
-        ->whereHas('parent', function ($query) {
-            $query->where('gender', 'male');
-        });
+            ->where('type', 'biological')
+            ->whereHas('parent', function ($query) {
+                $query->where('gender', 'male');
+            });
     }
 
     /**
@@ -119,7 +119,7 @@ class Person extends Model
      */
     public function getNasabAttribute(): ?string
     {
-        if (!$this->father) {
+        if (! $this->father) {
             return null;
         }
 
@@ -141,7 +141,7 @@ class Person extends Model
     {
         $father = $this->father;
 
-        if (!$father) {
+        if (! $father) {
             return $this->full_name;
         }
 
@@ -220,7 +220,7 @@ class Person extends Model
      * Relasi utama untuk RelationManager "marriages".
      * Mengambil SEMUA data pernikahan dimana person ini berperan
      * sebagai suami ATAU sebagai istri.
-     * 
+     *
      * PERBAIKAN: Menggunakan union atau two separate relations
      */
     public function marriages(): HasMany
@@ -231,7 +231,7 @@ class Person extends Model
         } elseif ($this->gender === 'female') {
             return $this->hasMany(Marriage::class, 'wife_id');
         }
-        
+
         // Fallback: jika gender tidak ditentukan
         return $this->hasMany(Marriage::class, 'husband_id')
             ->where(function ($query) {
@@ -272,7 +272,7 @@ class Person extends Model
                 ->pluck('wife')
                 ->filter();
         }
-        
+
         // Jika gender perempuan, ambil semua suami dari marriagesAsWife
         if ($this->gender === 'female') {
             return $this->marriagesAsWife()
@@ -281,7 +281,7 @@ class Person extends Model
                 ->pluck('husband')
                 ->filter();
         }
-        
+
         // Fallback: jika gender tidak ditentukan
         return collect();
     }
@@ -297,20 +297,20 @@ class Person extends Model
                 ->whereNull('divorce_date')
                 ->with('wife')
                 ->first();
-            
+
             return $marriage ? $marriage->wife : null;
         }
-        
+
         // Jika gender perempuan, cari suami aktif
         if ($this->gender === 'female') {
             $marriage = $this->marriagesAsWife()
                 ->whereNull('divorce_date')
                 ->with('husband')
                 ->first();
-            
+
             return $marriage ? $marriage->husband : null;
         }
-        
+
         return null;
     }
 
@@ -343,7 +343,7 @@ class Person extends Model
                 ->pluck('wife')
                 ->filter();
         }
-        
+
         if ($this->gender === 'female') {
             return $this->marriagesAsWife()
                 ->with('husband')
@@ -351,7 +351,7 @@ class Person extends Model
                 ->pluck('husband')
                 ->filter();
         }
-        
+
         return collect();
     }
 

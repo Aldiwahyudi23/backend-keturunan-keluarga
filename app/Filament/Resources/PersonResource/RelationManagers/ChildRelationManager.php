@@ -2,35 +2,32 @@
 
 namespace App\Filament\Resources\PersonResource\RelationManagers;
 
-use App\Models\Person;
 use App\Models\Marriage;
 use App\Models\ParentChildRelation;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Table;
+use App\Models\Person;
+use Carbon\Carbon;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Exceptions\Halt;
+use Filament\Tables;
+use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Columns\ImageColumn;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Filament\Notifications\Notification;
-use Filament\Tables\Actions\Action as TableAction;
-use Filament\Support\Exceptions\Halt;
-use Carbon\Carbon;
 
 class ChildRelationManager extends RelationManager
 {
@@ -59,6 +56,7 @@ class ChildRelationManager extends RelationManager
                                     ->content(function () {
                                         $parent = $this->getOwnerRecord();
                                         $genderLabel = $parent->gender === 'male' ? 'Ayah' : 'Ibu';
+
                                         return "👤 {$genderLabel}: {$parent->full_name} ({$parent->person_code})";
                                     })
                                     ->columnSpan(1),
@@ -71,6 +69,7 @@ class ChildRelationManager extends RelationManager
 
                                         if ($spouse) {
                                             $genderLabel = $spouse->gender === 'male' ? 'Ayah' : 'Ibu';
+
                                             return "👤 {$genderLabel}: {$spouse->full_name} ({$spouse->person_code})";
                                         }
 
@@ -106,6 +105,7 @@ class ChildRelationManager extends RelationManager
                             ->visible(function () {
                                 $parent = $this->getOwnerRecord();
                                 $marriages = $this->getMarriages($parent->id);
+
                                 return $marriages->count() > 1;
                             }),
 
@@ -117,19 +117,19 @@ class ChildRelationManager extends RelationManager
                         Section::make('Pilih Anak yang Sudah Ada')
                             ->schema([
                                 Select::make('existing_child_id')
-                                ->label('Cari Anak')
-                                ->options(function () {
-                                    return Person::with('fatherRelation.parent')
-                                        ->orderBy('full_name')
-                                        ->get()
-                                        ->mapWithKeys(function (Person $person) {
-                                            return [
-                                                $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
-                                            ];
-                                        })
-                                        ->toArray();
-                                })
-                                ->searchable()
+                                    ->label('Cari Anak')
+                                    ->options(function () {
+                                        return Person::with('fatherRelation.parent')
+                                            ->orderBy('full_name')
+                                            ->get()
+                                            ->mapWithKeys(function (Person $person) {
+                                                return [
+                                                    $person->id => "{$person->full_name_with_nasab} ({$person->person_code})",
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->searchable()
                                     ->preload()
                                     ->live()
                                     ->placeholder('Ketik untuk mencari anak...')
@@ -222,7 +222,7 @@ class ChildRelationManager extends RelationManager
 
                                                     // Format birth_date dari tahun dan bulan
                                                     $birthDate = null;
-                                                    if (!empty($data['birth_year']) && !empty($data['birth_month'])) {
+                                                    if (! empty($data['birth_year']) && ! empty($data['birth_month'])) {
                                                         $birthDate = Carbon::createFromDate(
                                                             $data['birth_year'],
                                                             $data['birth_month'],
@@ -306,7 +306,7 @@ class ChildRelationManager extends RelationManager
                 ImageColumn::make('child.photo_path')
                     ->label('Foto')
                     ->circular()
-                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->child->full_name) . '&color=7F9CF5&background=EBF4FF')
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->child->full_name).'&color=7F9CF5&background=EBF4FF')
                     ->size(40),
 
                 TextColumn::make('child.person_code')
@@ -392,8 +392,8 @@ class ChildRelationManager extends RelationManager
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->url(fn ($record) => route('filament.admin.resources.people.view', $record->child))
-                    // ->openUrlInNewTab()
-                    ,
+                // ->openUrlInNewTab()
+                ,
 
                 // Action Delete - hanya hapus relasi
                 Tables\Actions\DeleteAction::make()
@@ -491,8 +491,8 @@ class ChildRelationManager extends RelationManager
             $query->where('husband_id', $personId)
                 ->orWhere('wife_id', $personId);
         })
-        ->whereNull('divorce_date')
-        ->first();
+            ->whereNull('divorce_date')
+            ->first();
 
         if ($marriage) {
             return $marriage->husband_id == $personId
@@ -511,7 +511,7 @@ class ChildRelationManager extends RelationManager
         // Ambil spouse_id
         $spouseId = $data['spouse_id'] ?? null;
 
-        if (!$spouseId) {
+        if (! $spouseId) {
             // Cari pasangan dari pernikahan pertama yang aktif
             $spouse = $this->getSpouse($parentId);
             if ($spouse) {
@@ -528,7 +528,7 @@ class ChildRelationManager extends RelationManager
         try {
             // Get child from existing
             $child = Person::find($data['existing_child_id']);
-            if (!$child) {
+            if (! $child) {
                 throw new \Exception('Data anak tidak ditemukan.');
             }
 
@@ -555,7 +555,7 @@ class ChildRelationManager extends RelationManager
                     ->where('child_id', $child->id)
                     ->first();
 
-                if (!$spouseRelation) {
+                if (! $spouseRelation) {
                     ParentChildRelation::create([
                         'parent_id' => $spouseId,
                         'child_id' => $child->id,
@@ -571,7 +571,7 @@ class ChildRelationManager extends RelationManager
 
             Notification::make()
                 ->title('✅ Berhasil menambahkan anak')
-                ->body("Anak {$child->full_name} berhasil ditambahkan sebagai anak dari {$parentName}" . ($spouseName ? " dan {$spouseName}" : ''))
+                ->body("Anak {$child->full_name} berhasil ditambahkan sebagai anak dari {$parentName}".($spouseName ? " dan {$spouseName}" : ''))
                 ->success()
                 ->send();
 
@@ -588,7 +588,7 @@ class ChildRelationManager extends RelationManager
 
             // Hentikan action secara halus (modal tetap terbuka,
             // tidak memicu halaman error Laravel)
-            throw new Halt();
+            throw new Halt;
         }
     }
 }

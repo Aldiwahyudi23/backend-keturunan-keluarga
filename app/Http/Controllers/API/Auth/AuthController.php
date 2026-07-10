@@ -10,8 +10,7 @@ class AuthController extends Controller
 {
     public function __construct(
         protected AuthService $authService
-    ) {
-    }
+    ) {}
 
     /**
      * Login
@@ -21,13 +20,13 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => [
                 'required',
-                'email'
+                'email',
             ],
 
             'password' => [
                 'required',
-                'string'
-            ]
+                'string',
+            ],
         ]);
 
         $data = $this
@@ -40,7 +39,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil.',
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -57,7 +56,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logout berhasil.'
+            'message' => 'Logout berhasil.',
         ]);
     }
 
@@ -74,7 +73,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logout semua device berhasil.'
+            'message' => 'Logout semua device berhasil.',
         ]);
     }
 
@@ -89,7 +88,7 @@ class AuthController extends Controller
                 ->authService
                 ->me(
                     $request->user()
-                )
+                ),
         ]);
     }
 }

@@ -30,4 +30,3 @@ class CheckTokenAbility
         return $next($request);
     }
 }
-

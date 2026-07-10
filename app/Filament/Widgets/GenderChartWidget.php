@@ -3,16 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Person;
-use App\Models\Marriage;
-use App\Models\ParentChildRelation;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\DB;
 
 class GenderChartWidget extends ChartWidget
 {
     protected static ?string $heading = 'Statistik Gender';
 
-    protected int | string | array $columnSpan = '1/2';
+    protected int|string|array $columnSpan = '1/2';
 
     protected function getData(): array
     {

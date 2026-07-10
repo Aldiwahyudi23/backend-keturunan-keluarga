@@ -11,8 +11,7 @@ class BookDataController extends Controller
 {
     public function __construct(
         protected BookDataService $bookDataService
-    ) {
-    }
+    ) {}
 
     /**
      * Menampilkan hasil data buku (JSON).

@@ -11,8 +11,7 @@ class BookPdfController extends Controller
 {
     public function __construct(
         protected BookPdfService $bookPdfService
-    ) {
-    }
+    ) {}
 
     /**
      * Preview PDF.

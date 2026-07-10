@@ -2,38 +2,35 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Person;
 use App\Models\Marriage;
 use App\Models\ParentChildRelation;
+use App\Models\Person;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Widgets\Widget;
-use Filament\Actions\Action;
-use Illuminate\Support\Facades\DB;
 
 class StatsOverview extends BaseWidget
 {
     protected static ?string $pollingInterval = '10s';
-    
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
 
     protected function getStats(): array
     {
         // Total Person
         $totalPeople = Person::count();
-        
+
         // Total Person Male
         $totalMale = Person::where('gender', 'male')->count();
-        
+
         // Total Person Female
         $totalFemale = Person::where('gender', 'female')->count();
-        
+
         // Total Pasangan (Marriage yang masih aktif/belum cerai)
         $totalMarriages = Marriage::whereNull('divorce_date')->count();
-        
+
         // Total Anak (relasi parent-child yang unik)
         $totalChildren = ParentChildRelation::distinct('child_id')->count('child_id');
-        
+
         // Person yang belum memiliki pasangan
         $peopleWithoutSpouse = Person::whereDoesntHave('husbandMarriages', function ($query) {
             $query->whereNull('divorce_date');
@@ -48,7 +45,7 @@ class StatsOverview extends BaseWidget
                 ->color('primary')
                 ->chart([7, 3, 5, 2, 8, 4, 6])
                 ->extraAttributes([
-                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'
+                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
                 ])
                 ->url(route('filament.admin.resources.people.index'))
                 ->icon('heroicon-o-user-group'),
@@ -59,7 +56,7 @@ class StatsOverview extends BaseWidget
                 ->color('info')
                 ->icon('heroicon-o-user')
                 ->extraAttributes([
-                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'
+                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
                 ])
                 ->url(route('filament.admin.resources.people.index', ['tableFilters[gender][value]' => 'male'])),
 
@@ -69,7 +66,7 @@ class StatsOverview extends BaseWidget
                 ->color('danger')
                 ->icon('heroicon-o-user')
                 ->extraAttributes([
-                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'
+                    'class' => 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
                 ])
                 ->url(route('filament.admin.resources.people.index', ['tableFilters[gender][value]' => 'female'])),
 

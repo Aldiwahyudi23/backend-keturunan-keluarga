@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\GenerateServiceToken;
 use App\Filament\Widgets\GenderChartWidget;
-use App\Filament\Widgets\RecentPeopleWidget;
 use App\Filament\Widgets\StatsOverview;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;

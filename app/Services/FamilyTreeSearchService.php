@@ -21,12 +21,12 @@ class FamilyTreeSearchService
 
         return Person::query()
             ->with([
-                'fatherRelation.parent'
+                'fatherRelation.parent',
             ])
             ->where(function ($q) use ($keyword) {
                 $q->where('person_code', 'LIKE', "%{$keyword}%")
-                ->orWhere('full_name', 'LIKE', "%{$keyword}%")
-                ->orWhere('nickname', 'LIKE', "%{$keyword}%");
+                    ->orWhere('full_name', 'LIKE', "%{$keyword}%")
+                    ->orWhere('nickname', 'LIKE', "%{$keyword}%");
             })
             ->orderBy('full_name')
             ->limit(50)
@@ -42,19 +42,19 @@ class FamilyTreeSearchService
     private function formatPersonPublic(Person $person): array
     {
         return [
-            'id'                 => $person->id,
-            'uuid'               => $person->uuid,
-            'full_name'          => $person->full_name,
-            'nasab'              => $person->nasab,
-            'father_name'        => $person->father?->full_name,
-            'nickname'           => $person->nickname,
-            'gender'             => $this->genderLabel($person->gender),
-            'birth_year'         => $person->birth_date ? Carbon::parse($person->birth_date)->year : null,
-            'death_date'         => optional($person->death_date)->format('Y-m-d'),
-            'age'                => $this->calculateAge($person),
-            'is_deceased'        => !is_null($person->death_date),
-            'birth_place'        => $person->birth_place,
-            'photo_path'         => $person->photo_path
+            'id' => $person->id,
+            'uuid' => $person->uuid,
+            'full_name' => $person->full_name,
+            'nasab' => $person->nasab,
+            'father_name' => $person->father?->full_name,
+            'nickname' => $person->nickname,
+            'gender' => $this->genderLabel($person->gender),
+            'birth_year' => $person->birth_date ? Carbon::parse($person->birth_date)->year : null,
+            'death_date' => optional($person->death_date)->format('Y-m-d'),
+            'age' => $this->calculateAge($person),
+            'is_deceased' => ! is_null($person->death_date),
+            'birth_place' => $person->birth_place,
+            'photo_path' => $person->photo_path
                 ? url(Storage::url($person->photo_path))
                 : null,
         ];
@@ -63,15 +63,15 @@ class FamilyTreeSearchService
     private function genderLabel(?string $gender): ?string
     {
         return match ($gender) {
-            'male'   => 'Laki-laki',
+            'male' => 'Laki-laki',
             'female' => 'Perempuan',
-            default  => null,
+            default => null,
         };
     }
 
     private function calculateAge(Person $person): ?int
     {
-        if (!$person->birth_date) {
+        if (! $person->birth_date) {
             return null;
         }
 

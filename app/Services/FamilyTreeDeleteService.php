@@ -2,11 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Person;
-use App\Models\ParentChildRelation;
 use App\Models\Marriage;
+use App\Models\ParentChildRelation;
+use App\Models\Person;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class FamilyTreeDeleteService
 {
@@ -29,7 +28,7 @@ class FamilyTreeDeleteService
 
         return [
             'deleted_marriage' => $marriageData,
-            'message' => 'Data pernikahan berhasil dihapus'
+            'message' => 'Data pernikahan berhasil dihapus',
         ];
     }
 
@@ -50,7 +49,7 @@ class FamilyTreeDeleteService
         return [
             'parent' => $this->formatPersonCompact($parent),
             'child' => $this->formatPersonCompact($child),
-            'message' => 'Relasi anak berhasil dilepas'
+            'message' => 'Relasi anak berhasil dilepas',
         ];
     }
 
@@ -63,7 +62,7 @@ class FamilyTreeDeleteService
 
         return DB::transaction(function () use ($person) {
             $personData = $this->formatPersonCompact($person);
-            
+
             // Kumpulkan data relasi untuk response
             $relations = $this->getRelationsData($person->id);
 
@@ -81,7 +80,7 @@ class FamilyTreeDeleteService
             return [
                 'deleted_person' => $personData,
                 'deleted_relations' => $relations,
-                'message' => 'Person dan semua relasi terkait berhasil dihapus permanen'
+                'message' => 'Person dan semua relasi terkait berhasil dihapus permanen',
             ];
         });
     }

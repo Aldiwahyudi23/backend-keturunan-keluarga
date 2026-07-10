@@ -18,7 +18,7 @@ class PersonCardService
             'fatherRelation.parent',
         ]);
 
-        $url = url('https://keturunan.keluargamahaya.com/family-tree/' . $person->uuid);
+        $url = url('https://keturunan.keluargamahaya.com/family-tree/'.$person->uuid);
 
         $qrCode = base64_encode(
             QrCode::format('svg')
@@ -50,10 +50,10 @@ class PersonCardService
         $pdf = Pdf::loadView(
             'pdf.person-card',
             $data
-        )->setPaper('a6', 'landscape');
+        )->setPaper([0, 0, 242.65, 153.07]);
 
         return $pdf->stream(
-            'kartu-' . $person->person_code . '.pdf'
+            'Kartu-'.$person->full_name_with_nasab.'.pdf'
         );
     }
 
@@ -66,8 +66,7 @@ class PersonCardService
             'fatherRelation.parent',
         ]);
 
-        
-        $url = url('https://keturunan.keluargamahaya.com/family-tree/' . $person->uuid);
+        $url = url('https://keturunan.keluargamahaya.com/family-tree/'.$person->uuid);
 
         $qrCode = base64_encode(
             QrCode::format('svg')
@@ -99,10 +98,10 @@ class PersonCardService
         $pdf = Pdf::loadView(
             'pdf.person-card',
             $data
-        )->setPaper('a6', 'landscape');
+        )->setPaper([0, 0, 242.65, 153.07]);
 
         return $pdf->download(
-            'kartu-' . $person->person_code . '.pdf'
+            'Kartu-'.$person->full_name_with_nasab.'.pdf'
         );
     }
 }

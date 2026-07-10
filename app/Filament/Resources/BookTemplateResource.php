@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BookTemplateResource\Pages;
-use App\Filament\Resources\BookTemplateResource\RelationManagers;
 use App\Models\BookTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BookTemplateResource extends Resource
 {
@@ -36,10 +33,10 @@ class BookTemplateResource extends Resource
                     ->required()
                     ->native(false)
                     ->options([
-                        'pdf.book.classic'  => 'Classic',
-                        'pdf.book.modern'   => 'Modern',
-                        'pdf.book.minimal'  => 'Minimal',
-                        'pdf.book.premium'  => 'Premium',
+                        'pdf.book.classic' => 'Classic',
+                        'pdf.book.modern' => 'Modern',
+                        'pdf.book.minimal' => 'Minimal',
+                        'pdf.book.premium' => 'Premium',
                     ])
                     ->searchable()
                     ->helperText('Template Blade yang digunakan saat generate PDF.'),

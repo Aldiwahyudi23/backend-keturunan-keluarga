@@ -17,8 +17,8 @@ class AuthService
     {
         $throttleKey =
             Str::lower($credentials['email'])
-            . '|'
-            . $ip;
+            .'|'
+            .$ip;
 
         if (
             RateLimiter::tooManyAttempts(
@@ -33,8 +33,8 @@ class AuthService
 
             throw ValidationException::withMessages([
                 'email' => [
-                    "Terlalu banyak percobaan login. Coba lagi dalam {$seconds} detik."
-                ]
+                    "Terlalu banyak percobaan login. Coba lagi dalam {$seconds} detik.",
+                ],
             ]);
         }
 
@@ -49,8 +49,8 @@ class AuthService
 
             throw ValidationException::withMessages([
                 'email' => [
-                    'Email atau password salah.'
-                ]
+                    'Email atau password salah.',
+                ],
             ]);
         }
 
@@ -79,7 +79,7 @@ class AuthService
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-            ]
+            ],
         ];
     }
 

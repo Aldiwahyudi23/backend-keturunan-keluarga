@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Person;
-use App\Models\ParentChildRelation;
 use App\Models\Marriage;
+use App\Models\ParentChildRelation;
+use App\Models\Person;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class FamilyTreeUpdateService
 {
@@ -23,13 +23,13 @@ class FamilyTreeUpdateService
             $hasRelations = $this->hasRelations($personId);
             if ($hasRelations) {
                 throw ValidationException::withMessages([
-                    'gender' => ['Tidak dapat mengubah gender karena person ini sudah memiliki relasi (pasangan/anak/orang tua).']
+                    'gender' => ['Tidak dapat mengubah gender karena person ini sudah memiliki relasi (pasangan/anak/orang tua).'],
                 ]);
             }
         }
 
         // Format birth_date jika ada
-        if (!empty($data['birth_year'])) {
+        if (! empty($data['birth_year'])) {
             $month = $data['birth_month'] ?? 1;
             $day = 1;
             $data['birth_date'] = Carbon::createFromDate($data['birth_year'], $month, $day)->format('Y-m-d');
@@ -42,7 +42,7 @@ class FamilyTreeUpdateService
 
         return [
             'person' => $this->formatPersonCompact($person),
-            'message' => 'Data person berhasil diperbarui'
+            'message' => 'Data person berhasil diperbarui',
         ];
     }
 
@@ -74,7 +74,7 @@ class FamilyTreeUpdateService
             return [
                 'deleted_person' => $personData,
                 'deleted_relations' => $relations,
-                'message' => 'Person dan semua relasi terkait berhasil dihapus permanen'
+                'message' => 'Person dan semua relasi terkait berhasil dihapus permanen',
             ];
         });
     }
@@ -94,19 +94,19 @@ class FamilyTreeUpdateService
         $updateData = array_intersect_key($data, array_flip($updatableFields));
 
         // Validasi divorce_date harus setelah marriage_date
-        if (!empty($updateData['divorce_date']) && !empty($updateData['marriage_date'])) {
+        if (! empty($updateData['divorce_date']) && ! empty($updateData['marriage_date'])) {
             if (Carbon::parse($updateData['divorce_date']) <= Carbon::parse($updateData['marriage_date'])) {
                 throw ValidationException::withMessages([
-                    'divorce_date' => ['Tanggal cerai harus setelah tanggal nikah.']
+                    'divorce_date' => ['Tanggal cerai harus setelah tanggal nikah.'],
                 ]);
             }
         }
 
         // Jika hanya divorce_date diisi, cek dengan marriage_date existing
-        if (!empty($updateData['divorce_date']) && empty($updateData['marriage_date']) && $marriage->marriage_date) {
+        if (! empty($updateData['divorce_date']) && empty($updateData['marriage_date']) && $marriage->marriage_date) {
             if (Carbon::parse($updateData['divorce_date']) <= Carbon::parse($marriage->marriage_date)) {
                 throw ValidationException::withMessages([
-                    'divorce_date' => ['Tanggal cerai harus setelah tanggal nikah (' . $marriage->marriage_date->format('Y-m-d') . ').']
+                    'divorce_date' => ['Tanggal cerai harus setelah tanggal nikah ('.$marriage->marriage_date->format('Y-m-d').').'],
                 ]);
             }
         }
@@ -115,7 +115,7 @@ class FamilyTreeUpdateService
 
         return [
             'marriage' => $this->formatMarriage($marriage),
-            'message' => 'Data pernikahan berhasil diperbarui'
+            'message' => 'Data pernikahan berhasil diperbarui',
         ];
     }
 
@@ -133,7 +133,7 @@ class FamilyTreeUpdateService
 
         return [
             'deleted_marriage' => $marriageData,
-            'message' => 'Data pernikahan berhasil dihapus'
+            'message' => 'Data pernikahan berhasil dihapus',
         ];
     }
 
@@ -166,9 +166,9 @@ class FamilyTreeUpdateService
             ->where('child_id', $childId)
             ->first();
 
-        if (!$relation) {
+        if (! $relation) {
             throw ValidationException::withMessages([
-                'child_id' => ['Relasi antara orang tua dan anak ini tidak ditemukan.']
+                'child_id' => ['Relasi antara orang tua dan anak ini tidak ditemukan.'],
             ]);
         }
 
@@ -178,7 +178,7 @@ class FamilyTreeUpdateService
         return [
             'parent' => $this->formatPersonCompact($parent),
             'child' => $this->formatPersonCompact($child),
-            'message' => 'Relasi anak berhasil dilepas dari orang tua'
+            'message' => 'Relasi anak berhasil dilepas dari orang tua',
         ];
     }
 
@@ -195,7 +195,7 @@ class FamilyTreeUpdateService
 
         if ($children->isEmpty()) {
             throw ValidationException::withMessages([
-                'parent_id' => ['Tidak ada relasi anak yang ditemukan untuk orang tua ini.']
+                'parent_id' => ['Tidak ada relasi anak yang ditemukan untuk orang tua ini.'],
             ]);
         }
 
@@ -210,7 +210,7 @@ class FamilyTreeUpdateService
             'parent' => $this->formatPersonCompact($parent),
             'deleted_children' => $deletedChildren,
             'total_deleted' => count($deletedChildren),
-            'message' => 'Semua relasi anak berhasil dilepas dari orang tua'
+            'message' => 'Semua relasi anak berhasil dilepas dari orang tua',
         ];
     }
 
@@ -229,17 +229,17 @@ class FamilyTreeUpdateService
         $children = $childRelations->map(function ($relation) {
             $child = $relation->child;
             $data = $this->formatPersonCompact($child);
-            
+
             // Cek berapa jumlah orang tua yang dimiliki anak ini
             $parentCount = $child->parents()->count();
             $data['parent_count'] = $parentCount;
             $data['has_both_parents'] = $parentCount >= 2;
-            
+
             // Cek apakah anak ini memiliki relasi dengan parent lain
             $otherParents = $child->parents()
                 ->where('people.id', '!=', $relation->parent_id)
                 ->get();
-            
+
             $data['other_parents'] = $otherParents->map(function ($parent) {
                 return $this->formatPersonCompact($parent);
             })->toArray();
@@ -271,8 +271,8 @@ class FamilyTreeUpdateService
             'person' => $this->formatPersonCompact($person),
             'spouses' => $spouses,
             'children' => $children['children'] ?? [],
-            'has_relations' => !empty($spouses) || !empty($children['children']),
-            'warning' => 'Menghapus person akan menghapus SEMUA relasi yang terhubung secara permanen.'
+            'has_relations' => ! empty($spouses) || ! empty($children['children']),
+            'warning' => 'Menghapus person akan menghapus SEMUA relasi yang terhubung secara permanen.',
         ];
     }
 
@@ -352,13 +352,14 @@ class FamilyTreeUpdateService
 
         return $others->map(function (Person $other) use ($map) {
             $marriage = $map->get($other->id);
+
             return [
                 'person' => $this->formatPersonCompact($other),
                 'marriage' => [
                     'marriage_id' => $marriage->id,
                     'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
                     'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
-                    'is_divorced' => !is_null($marriage->divorce_date),
+                    'is_divorced' => ! is_null($marriage->divorce_date),
                     'notes' => $marriage->notes,
                 ],
             ];
@@ -377,7 +378,7 @@ class FamilyTreeUpdateService
             'birth_date' => optional($person->birth_date)->format('Y-m-d'),
             'death_date' => optional($person->death_date)->format('Y-m-d'),
             'age' => $this->calculateAge($person),
-            'is_deceased' => !is_null($person->death_date),
+            'is_deceased' => ! is_null($person->death_date),
             'birth_place' => $person->birth_place,
             'photo_path' => $person->photo_path,
             'bio' => $person->bio,
@@ -392,18 +393,19 @@ class FamilyTreeUpdateService
             'wife' => $this->formatPersonCompact($marriage->wife),
             'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
             'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
-            'is_divorced' => !is_null($marriage->divorce_date),
+            'is_divorced' => ! is_null($marriage->divorce_date),
             'notes' => $marriage->notes,
         ];
     }
 
     private function calculateAge(Person $person): ?int
     {
-        if (!$person->birth_date) {
+        if (! $person->birth_date) {
             return null;
         }
 
         $end = $person->death_date ? Carbon::parse($person->death_date) : Carbon::now();
+
         return Carbon::parse($person->birth_date)->diffInYears($end);
     }
 }

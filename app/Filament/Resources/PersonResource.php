@@ -4,55 +4,48 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PersonResource\Pages;
 use App\Filament\Resources\PersonResource\RelationManagers;
-use App\Filament\Resources\PersonResource\RelationManagers\ParentRelationManager;
 use App\Models\Person;
-use App\Models\PersonHistory;
-use App\Services\PersonCardService;
+use Carbon\Carbon;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\ToggleButtons;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Component;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Infolists;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\Section as InfolistSection;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Form;
+use Filament\Infolists\Components\Grid as InfolistGrid;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\Grid as InfolistGrid;
-use Carbon\Carbon;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Services\Report\BookPdfService;
 
 class PersonResource extends Resource
 {
     protected static ?string $model = Person::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    
+
     protected static ?string $navigationLabel = 'Data Person';
-    
+
     protected static ?string $pluralLabel = 'Data Person';
-    
+
     protected static ?string $modelLabel = 'Person';
 
     protected static ?string $recordTitleAttribute = 'full_name';
@@ -72,12 +65,12 @@ class PersonResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->columnSpanFull(),
-                                
+
                                 TextInput::make('nickname')
                                     ->label('Nama Panggilan')
                                     ->maxLength(100)
                                     ->columnSpanFull(),
-                                
+
                                 ToggleButtons::make('gender')
                                     ->label('Jenis Kelamin')
                                     ->required()
@@ -95,12 +88,12 @@ class PersonResource extends Resource
                                     ])
                                     ->inline()
                                     ->columnSpanFull(),
-                                
+
                                 TextInput::make('birth_place')
                                     ->label('Tempat Lahir')
                                     ->maxLength(255)
                                     ->columnSpanFull(),
-                                
+
                                 // Fieldset untuk tanggal lahir dengan pendekatan yang benar
                                 Fieldset::make('Tanggal Lahir')
                                     ->schema([
@@ -140,15 +133,15 @@ class PersonResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $get, callable $set) {
                                                         $month = $state;
                                                         $year = $get('birth_year');
-                                                        
+
                                                         if ($month && $year) {
-                                                            $date = Carbon::createFromDate((int)$year, (int)$month, 1);
+                                                            $date = Carbon::createFromDate((int) $year, (int) $month, 1);
                                                             $set('birth_date', $date->format('Y-m-d'));
-                                                        } elseif (!$month || !$year) {
+                                                        } elseif (! $month || ! $year) {
                                                             $set('birth_date', null);
                                                         }
                                                     }),
-                                                
+
                                                 TextInput::make('birth_year')
                                                     ->label('Tahun')
                                                     ->numeric()
@@ -162,7 +155,7 @@ class PersonResource extends Resource
                                                         'lg' => 6,
                                                         'xl' => 6,
                                                     ])
-                                                    ->rules(['nullable', 'integer', 'min:1900', 'max:' . date('Y')])
+                                                    ->rules(['nullable', 'integer', 'min:1900', 'max:'.date('Y')])
                                                     ->live()
                                                     ->afterStateHydrated(function ($component, $state, $record) {
                                                         // Isi nilai tahun dari data record saat edit
@@ -173,11 +166,11 @@ class PersonResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $get, callable $set) {
                                                         $year = $state;
                                                         $month = $get('birth_month');
-                                                        
+
                                                         if ($month && $year) {
-                                                            $date = Carbon::createFromDate((int)$year, (int)$month, 1);
+                                                            $date = Carbon::createFromDate((int) $year, (int) $month, 1);
                                                             $set('birth_date', $date->format('Y-m-d'));
-                                                        } elseif (!$month || !$year) {
+                                                        } elseif (! $month || ! $year) {
                                                             $set('birth_date', null);
                                                         }
                                                     }),
@@ -191,17 +184,17 @@ class PersonResource extends Resource
                                             ]),
                                     ])
                                     ->columnSpanFull(),
-                                
+
                                 // Hidden field untuk birth_date yang akan disimpan
                                 Forms\Components\Hidden::make('birth_date')
                                     ->dehydrated(true),
-                                
+
                                 DatePicker::make('death_date')
                                     ->label('Tanggal Wafat')
                                     ->displayFormat('d/m/Y')
                                     ->after('birth_date')
                                     ->columnSpanFull(),
-                                
+
                                 Grid::make()
                                     ->schema([
                                         TextInput::make('person_code')
@@ -215,7 +208,7 @@ class PersonResource extends Resource
                                                 'lg' => 6,
                                                 'xl' => 6,
                                             ]),
-                                        
+
                                         Placeholder::make('created_at')
                                             ->label('Dibuat Pada')
                                             ->content(fn ($record): string => $record ? $record->created_at->format('d/m/Y H:i') : '-')
@@ -235,7 +228,7 @@ class PersonResource extends Resource
                                         'xl' => 2,
                                     ])
                                     ->columnSpanFull(),
-                                
+
                                 FileUpload::make('photo_path')
                                     ->label('Foto')
                                     ->image()
@@ -244,7 +237,7 @@ class PersonResource extends Resource
                                     ->directory('people-photos')
                                     ->maxSize(2048)
                                     ->columnSpanFull(),
-                                
+
                                 Textarea::make('bio')
                                     ->label('Biografi / Catatan')
                                     ->rows(4)
@@ -258,7 +251,7 @@ class PersonResource extends Resource
                                 'xl' => 2,
                             ]),
                     ]),
-                
+
                 Section::make('Riwayat Hidup')
                     ->icon('heroicon-o-clock')
                     ->collapsible()
@@ -275,18 +268,18 @@ class PersonResource extends Resource
                                             ->required()
                                             ->displayFormat('d/m/Y')
                                             ->columnSpanFull(),
-                                        
+
                                         TextInput::make('title')
                                             ->label('Judul Peristiwa')
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpanFull(),
-                                        
+
                                         TextInput::make('location')
                                             ->label('Lokasi')
                                             ->maxLength(255)
                                             ->columnSpanFull(),
-                                        
+
                                         RichEditor::make('description')
                                             ->label('Deskripsi')
                                             ->toolbarButtons([
@@ -333,7 +326,7 @@ class PersonResource extends Resource
                 ImageColumn::make('photo_path')
                     ->label('Foto')
                     ->circular()
-                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&color=7F9CF5&background=EBF4FF')
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->full_name).'&color=7F9CF5&background=EBF4FF')
                     ->size(40),
 
                 TextColumn::make('uuid')
@@ -341,49 +334,49 @@ class PersonResource extends Resource
                     ->searchable()
                     ->copyable()
                     ->size('sm')
-                    ->toggleable(),
-                
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('person_code')
                     ->label('Kode')
                     ->searchable()
                     ->copyable()
                     ->size('sm')
                     ->weight('bold'),
-                
+
                 TextColumn::make('full_name_with_nasab')
                     ->label('Nama')
                     ->weight('bold')
-                   ->searchable(query: function ($query, string $search) {
+                    ->searchable(query: function ($query, string $search) {
                         $query->where('full_name', 'like', "%{$search}%")
                             ->orWhereHas('fatherRelation.parent', function ($q) use ($search) {
                                 $q->where('full_name', 'like', "%{$search}%");
                             });
                     }),
-                
+
                 TextColumn::make('gender')
                     ->label('JK')
                     ->formatStateUsing(fn ($state) => $state === 'male' ? 'L' : 'P')
                     ->badge()
                     ->color(fn ($state) => $state === 'male' ? 'info' : 'danger'),
-                
+
                 TextColumn::make('birth_date')
                     ->label('Lahir')
                     ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->translatedFormat('F Y') : '-')
                     ->sortable()
                     ->placeholder('-'),
-                
+
                 TextColumn::make('death_date')
                     ->label('Wafat')
                     ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->translatedFormat('F Y') : '-')
                     ->sortable()
                     ->placeholder('-'),
-                
+
                 TextColumn::make('birth_place')
                     ->label('Tempat Lahir')
                     ->searchable()
                     ->limit(15)
                     ->toggleable(),
-                
+
                 TextColumn::make('histories_count')
                     ->label('Riwayat')
                     ->counts('histories')
@@ -406,43 +399,8 @@ class PersonResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->label('Lihat Detail'),
 
-                        
-                        Tables\Actions\EditAction::make()
+                    Tables\Actions\EditAction::make()
                         ->label('Edit Person'),
-
-                        Tables\Actions\Action::make('pdf')
-                            ->label('Generate PDF')
-                            ->icon('heroicon-o-document-arrow-down')
-                            ->color('danger')
-
-                            ->form([
-                                Select::make('level')
-                                    ->label('Jumlah Generasi')
-                                    ->options([
-                                        0  => 'Semua Generasi',
-                                        1  => 'Generasi 1',
-                                        2  => 'Generasi 2',
-                                        3  => 'Generasi 3',
-                                        4  => 'Generasi 4',
-                                        5  => 'Generasi 5',
-                                        6  => 'Generasi 6',
-                                        7  => 'Generasi 7',
-                                        8  => 'Generasi 8',
-                                        9  => 'Generasi 9',
-                                        10 => 'Generasi 10',
-                                    ])
-                                    ->default(0)
-                                    ->native(false),
-                            ])
-
-                            ->action(function (Person $record, array $data) {
-
-                                return redirect()->route('book.download', [
-                                    'uuid'  => $record->uuid,
-                                    'level' => (int) ($data['level'] ?? 0),
-                                ]);
-
-                            }),
 
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus'),
@@ -472,13 +430,13 @@ class PersonResource extends Resource
                                         ImageEntry::make('photo_path')
                                             ->label('')
                                             ->circular()
-                                            ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&color=7F9CF5&background=EBF4FF')
+                                            ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->full_name).'&color=7F9CF5&background=EBF4FF')
                                             ->height(200)
                                             ->width(200)
                                             ->extraAttributes(['class' => 'mx-auto']),
                                     ])
                                     ->columnSpan(1),
-                                
+
                                 InfolistGrid::make(1)
                                     ->schema([
                                         TextEntry::make('full_name')
@@ -486,13 +444,13 @@ class PersonResource extends Resource
                                             ->weight('bold')
                                             ->size('2xl')
                                             ->extraAttributes(['class' => 'text-center']),
-                                        
+
                                         TextEntry::make('person_code')
                                             ->label('Kode Person')
                                             ->badge()
                                             ->color('info')
                                             ->extraAttributes(['class' => 'text-center']),
-                                        
+
                                         TextEntry::make('gender')
                                             ->label('Jenis Kelamin')
                                             ->formatStateUsing(fn ($state) => $state === 'male' ? '👨 Laki-laki' : '👩 Perempuan')
@@ -501,18 +459,18 @@ class PersonResource extends Resource
                                             ->extraAttributes(['class' => 'text-center']),
                                     ])
                                     ->columnSpan(1),
-                                
+
                                 InfolistGrid::make(1)
                                     ->schema([
                                         TextEntry::make('birth_place')
                                             ->label('Tempat Lahir')
                                             ->icon('heroicon-o-map-pin'),
-                                        
+
                                         TextEntry::make('birth_date')
                                             ->label('Tanggal Lahir')
                                             ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->translatedFormat('F Y') : '-')
                                             ->icon('heroicon-o-calendar'),
-                                        
+
                                         TextEntry::make('death_date')
                                             ->label('Tanggal Wafat')
                                             ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->translatedFormat('d F Y') : '-')
@@ -522,7 +480,7 @@ class PersonResource extends Resource
                                     ->columnSpan(1),
                             ]),
                     ]),
-                
+
                 InfolistSection::make('Biografi')
                     ->icon('heroicon-o-document-text')
                     ->schema([
@@ -533,7 +491,7 @@ class PersonResource extends Resource
                             ->extraAttributes(['class' => 'prose max-w-none']),
                     ])
                     ->collapsible(),
-                
+
                 InfolistSection::make('Riwayat Hidup')
                     ->icon('heroicon-o-clock')
                     ->schema([
@@ -552,7 +510,7 @@ class PersonResource extends Resource
                                                     ->extraAttributes(['class' => 'text-right']),
                                             ])
                                             ->columnSpan(3),
-                                        
+
                                         InfolistGrid::make(1)
                                             ->schema([
                                                 TextEntry::make('divider')
@@ -561,18 +519,18 @@ class PersonResource extends Resource
                                                     ->extraAttributes(['class' => 'text-center text-gray-300 text-2xl']),
                                             ])
                                             ->columnSpan(1),
-                                        
+
                                         InfolistGrid::make(1)
                                             ->schema([
                                                 TextEntry::make('title')
                                                     ->label('')
                                                     ->weight('bold')
                                                     ->size('lg'),
-                                                
+
                                                 TextEntry::make('location')
                                                     ->label('')
                                                     ->formatStateUsing(fn ($state) => $state ? "📍 {$state}" : ''),
-                                                
+
                                                 TextEntry::make('description')
                                                     ->label('')
                                                     ->html()
@@ -607,12 +565,12 @@ class PersonResource extends Resource
             'birth_place',
         ];
     }
-    
+
     public static function getGlobalSearchResultTitle($record): string
     {
-        return $record->full_name . ' (' . $record->person_code . ')';
+        return $record->full_name.' ('.$record->person_code.')';
     }
-    
+
     public static function getGlobalSearchResultDetails($record): array
     {
         return [
@@ -622,12 +580,12 @@ class PersonResource extends Resource
             'Tanggal Lahir' => $record->birth_date ? Carbon::parse($record->birth_date)->translatedFormat('F Y') : '-',
         ];
     }
-    
+
     public static function getGlobalSearchResultUrl($record): string
     {
         return route('filament.admin.resources.people.view', $record);
     }
-    
+
     public static function getGlobalSearchResultsQuery($query)
     {
         return $query->limit(5);

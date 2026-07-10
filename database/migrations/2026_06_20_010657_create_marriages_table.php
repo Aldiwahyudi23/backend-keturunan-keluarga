@@ -25,7 +25,7 @@ return new class extends Migration
             $table->date('divorce_date')->nullable();
 
             $table->text('notes')->nullable();
-            
+
             $table->timestamps();
         });
     }

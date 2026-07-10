@@ -4,15 +4,11 @@ namespace App\Services\Report;
 
 use App\Models\Person;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 class HistoryService
 {
     /**
      * Mengambil seluruh sejarah berdasarkan person_id.
-     *
-     * @param int $personId
-     * @return array
      */
     public function generate(int $personId): array
     {
@@ -21,10 +17,10 @@ class HistoryService
                 $query
                     ->orderBy('sort')
                     ->orderBy('event_date');
-            }
+            },
         ])->find($personId);
 
-        if (!$person) {
+        if (! $person) {
             return [
                 'success' => false,
                 'message' => 'Person tidak ditemukan.',
@@ -41,7 +37,7 @@ class HistoryService
                     'person_code' => $person->person_code,
                     'full_name' => $person->full_name,
                     'full_name_with_nasab' => $person->full_name_with_nasab ?? $person->full_name,
-                    
+
                 ],
                 'histories' => $this->transformHistories(
                     $person->histories
@@ -52,9 +48,6 @@ class HistoryService
 
     /**
      * Transform collection histories.
-     *
-     * @param Collection $histories
-     * @return array
      */
     private function transformHistories(Collection $histories): array
     {
@@ -102,8 +95,8 @@ class HistoryService
             12 => 'Desember',
         ];
 
-        return $date->format('d') . ' ' .
-            $months[(int) $date->format('m')] . ' ' .
+        return $date->format('d').' '.
+            $months[(int) $date->format('m')].' '.
             $date->format('Y');
     }
 }

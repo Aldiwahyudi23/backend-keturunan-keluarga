@@ -22,10 +22,10 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->enum('type', [
-                    'biological',
-                    'adopted',
-                    'step'
-                ])->default('biological');
+                'biological',
+                'adopted',
+                'step',
+            ])->default('biological');
 
             $table->integer('sort')->nullable()->default(0);
 
@@ -33,7 +33,7 @@ return new class extends Migration
 
             $table->unique([
                 'parent_id',
-                'child_id'
+                'child_id',
             ]);
         });
     }

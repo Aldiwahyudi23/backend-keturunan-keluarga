@@ -90,7 +90,7 @@ return new class extends Migration
             $table->enum('status', [
                 'draft',
                 'published',
-                'archived'
+                'archived',
             ])->default('draft');
 
             $table->timestamp('published_at')->nullable();

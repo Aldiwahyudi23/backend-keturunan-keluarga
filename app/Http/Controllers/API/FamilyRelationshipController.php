@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Person;
-use Illuminate\Http\Request;
 use App\Services\FamilyRelationshipService;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class FamilyRelationshipController extends Controller
 {
@@ -23,18 +23,22 @@ class FamilyRelationshipController extends Controller
 
         // Cari Person A
         $personA = $this->findPerson($request->person_a);
-        
+
         // Cari Person B
         $personB = $this->findPerson($request->person_b);
 
         Log::info('Person A found:', ['found' => $personA ? true : false, 'id' => $personA->id ?? null]);
         Log::info('Person B found:', ['found' => $personB ? true : false, 'id' => $personB->id ?? null]);
 
-        if (!$personA || !$personB) {
+        if (! $personA || ! $personB) {
             $errors = [];
-            if (!$personA) $errors['person_a'] = ['Data tidak ditemukan untuk person A'];
-            if (!$personB) $errors['person_b'] = ['Data tidak ditemukan untuk person B'];
-            
+            if (! $personA) {
+                $errors['person_a'] = ['Data tidak ditemukan untuk person A'];
+            }
+            if (! $personB) {
+                $errors['person_b'] = ['Data tidak ditemukan untuk person B'];
+            }
+
             throw ValidationException::withMessages($errors);
         }
 
@@ -50,17 +54,19 @@ class FamilyRelationshipController extends Controller
     {
         // Coba parse JSON
         $decoded = json_decode($input, true);
-        
+
         if ($decoded !== null && is_array($decoded)) {
             Log::info('Searching by name:', $decoded);
+
             return $this->findPersonByNameAndParents(
                 $decoded['name'] ?? '',
                 $decoded['father_name'] ?? null,
                 $decoded['mother_name'] ?? null
             );
         }
-        
+
         Log::info('Searching by code:', ['code' => $input]);
+
         return Person::where('person_code', $input)->first();
     }
 
@@ -69,41 +75,46 @@ class FamilyRelationshipController extends Controller
         ?string $fatherName,
         ?string $motherName
     ): ?Person {
-        
+
         if (empty($name)) {
             Log::warning('Name is empty');
+
             return null;
         }
 
         if (empty($fatherName) && empty($motherName)) {
             Log::warning('No parent name provided');
+
             return null;
         }
 
         // STRATEGI 1: Cari langsung berdasarkan nama (tanpa parent dulu)
         Log::info('Searching person with name:', ['name' => $name]);
-        
+
         // Cari semua orang dengan nama yang mirip
         $persons = Person::where('full_name', 'LIKE', "%{$name}%")->get();
-        
+
         Log::info('Found persons by name:', ['count' => $persons->count()]);
-        
+
         if ($persons->isEmpty()) {
             Log::warning('No person found with name:', ['name' => $name]);
+
             return null;
         }
 
         // Jika hanya 1 orang ditemukan, cek parentnya
         if ($persons->count() === 1) {
             $person = $persons->first();
-            
+
             // Cek apakah parent cocok
             if ($this->checkParentMatch($person, $fatherName, $motherName)) {
                 Log::info('Person found with parent match:', ['id' => $person->id, 'name' => $person->full_name]);
+
                 return $person;
             }
-            
+
             Log::warning('Parent not match for person:', ['id' => $person->id]);
+
             return null;
         }
 
@@ -111,11 +122,13 @@ class FamilyRelationshipController extends Controller
         foreach ($persons as $person) {
             if ($this->checkParentMatch($person, $fatherName, $motherName)) {
                 Log::info('Person found with parent match (multiple):', ['id' => $person->id, 'name' => $person->full_name]);
+
                 return $person;
             }
         }
 
         Log::warning('No person with matching parent found');
+
         return null;
     }
 
@@ -127,14 +140,14 @@ class FamilyRelationshipController extends Controller
         ?string $fatherName,
         ?string $motherName
     ): bool {
-        
+
         // Ambil semua parent dari person
         $parents = $person->parents()->get();
-        
+
         Log::info('Checking parents for person:', [
             'person_id' => $person->id,
             'person_name' => $person->full_name,
-            'parents_count' => $parents->count()
+            'parents_count' => $parents->count(),
         ]);
 
         $hasFatherMatch = false;
@@ -145,13 +158,13 @@ class FamilyRelationshipController extends Controller
             // Jika tidak ada gender, coba cek berdasarkan logika
             $isFather = $parent->gender === 'Laki-laki' || $parent->gender === 'male';
             $isMother = $parent->gender === 'Perempuan' || $parent->gender === 'female';
-            
+
             Log::info('Parent:', [
                 'id' => $parent->id,
                 'name' => $parent->full_name,
                 'gender' => $parent->gender ?? 'unknown',
                 'isFather' => $isFather,
-                'isMother' => $isMother
+                'isMother' => $isMother,
             ]);
 
             // Cek kecocokan nama (case insensitive, flexible)

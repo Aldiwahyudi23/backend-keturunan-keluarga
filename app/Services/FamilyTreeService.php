@@ -3,38 +3,38 @@
 namespace App\Services;
 
 use App\Models\Book;
-use App\Models\Person;
-use App\Models\ParentChildRelation;
 use App\Models\Marriage;
+use App\Models\ParentChildRelation;
+use App\Models\Person;
 use App\Models\PersonHistory;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
 
 class FamilyTreeService
 {
     /** Batas level maksimal untuk tree */
     private const MAX_ANCESTOR_LEVEL = 2;
+
     private const MAX_DESCENDANT_LEVEL = 2;
 
     /**
      * Get family tree with relationship IDs
-     * 
-     * @param string $identifier
-     * @param int $maxLevel - level maksimal (default 2, max 5)
+     *
+     * @param  int  $maxLevel  - level maksimal (default 2, max 5)
      */
     public function getFamilyTree(string $identifier, int $maxLevel = 2): array
     {
         // Batasi maxLevel antara 2-5
         $maxLevel = max(2, min(5, $maxLevel));
-        
+
         $person = $this->findPersonOrFail($identifier);
-        
+
         $nodes = [];
         $visited = [];
-        
+
         $this->collectNodes($person->id, $nodes, $visited, $maxLevel);
-        
+
         $formattedNodes = [];
         foreach ($nodes as $nodeId => $personModel) {
             $formattedNodes[] = $this->formatNodeWithRelationsAndActions($personModel);
@@ -64,8 +64,8 @@ class FamilyTreeService
 
         $visited[$personId] = true;
         $person = Person::find($personId);
-        
-        if (!$person) {
+
+        if (! $person) {
             return;
         }
 
@@ -75,7 +75,7 @@ class FamilyTreeService
         // HANYA pasangan yang masih menikah (belum cerai)
         $spouses = $this->getActiveSpouses($personId);
         foreach ($spouses as $spouse) {
-            if (!isset($visited[$spouse['id']])) {
+            if (! isset($visited[$spouse['id']])) {
                 $this->collectNodes($spouse['id'], $nodes, $visited, $maxLevel, $currentLevel);
             }
         }
@@ -118,19 +118,19 @@ class FamilyTreeService
             'birth_month' => $person->birth_date ? Carbon::parse($person->birth_date)->month : null,
             'death_date' => optional($person->death_date)->format('Y-m-d'),
             'age' => $this->calculateAge($person),
-            'is_deceased' => !is_null($person->death_date),
+            'is_deceased' => ! is_null($person->death_date),
             'birth_place' => $person->birth_place,
             'photo_path' => $person->photo_path
             ? url(Storage::url($person->photo_path))
             : null,
-            
+
             'parent_ids' => array_filter([
                 $parents['father']['id'] ?? null,
                 $parents['mother']['id'] ?? null,
             ]),
             'spouse_ids' => collect($spouses)->pluck('id')->toArray(),
             'child_ids' => collect($children)->pluck('id')->toArray(),
-            
+
             'actions' => [
 
                 'can_add_spouse' => $isAuthenticated
@@ -163,7 +163,7 @@ class FamilyTreeService
         }
 
         $childIds = $childRelations->pluck('child_id')->unique();
-        
+
         // Ambil data person dan tambahkan informasi sort
         $children = Person::whereIn('id', $childIds)
             ->get()
@@ -242,29 +242,29 @@ class FamilyTreeService
                 ->whereNull('divorce_date')
                 ->with('husband')
                 ->first();
-            
-            if (!$marriage) {
+
+            if (! $marriage) {
                 return [];
             }
-            
+
             $others = collect([$marriage->husband])->filter();
             $map = collect([$marriage->husband_id => $marriage]);
         }
 
         return $others->map(function (Person $other) use ($map, $personId) {
             $marriage = $map->get($other->id);
-            if (!$marriage) {
+            if (! $marriage) {
                 return null;
             }
-            
+
             $data = $this->formatPersonCompact($other);
             $data['marriage'] = [
-                'marriage_id'    => $marriage->id,
-                'marriage_date'  => optional($marriage->marriage_date)->format('Y-m-d'),
-                'divorce_date'   => optional($marriage->divorce_date)->format('Y-m-d'),
-                'is_divorced'    => !is_null($marriage->divorce_date),
+                'marriage_id' => $marriage->id,
+                'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
+                'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
+                'is_divorced' => ! is_null($marriage->divorce_date),
             ];
-            
+
             // Tambahkan informasi pasangan ini adalah pasangan ke berapa
             // (untuk laki-laki yang poligami)
             if ($personId && (auth()->user()?->gender ?? $personId) === 'male') {
@@ -273,7 +273,7 @@ class FamilyTreeService
                     ->count();
                 $data['spouse_number'] = $spouseCount;
             }
-            
+
             return $data;
         })->filter()->values()->toArray();
     }
@@ -299,11 +299,12 @@ class FamilyTreeService
             $marriage = $map->get($other->id);
             $data = $this->formatPersonCompact($other);
             $data['marriage'] = [
-                'marriage_id'    => $marriage->id,
-                'marriage_date'  => optional($marriage->marriage_date)->format('Y-m-d'),
-                'divorce_date'   => optional($marriage->divorce_date)->format('Y-m-d'),
-                'is_divorced'    => !is_null($marriage->divorce_date),
+                'marriage_id' => $marriage->id,
+                'marriage_date' => optional($marriage->marriage_date)->format('Y-m-d'),
+                'divorce_date' => optional($marriage->divorce_date)->format('Y-m-d'),
+                'is_divorced' => ! is_null($marriage->divorce_date),
             ];
+
             return $data;
         })->values()->toArray();
     }
@@ -335,7 +336,7 @@ class FamilyTreeService
 
         // Perempuan: cek apakah masih punya pasangan aktif
         $spouses = $this->getActiveSpouses($person->id);
-        
+
         // Jika sudah punya pasangan aktif, tidak bisa tambah
         if (count($spouses) > 0) {
             return false;
@@ -349,7 +350,7 @@ class FamilyTreeService
      * - Cek apakah sudah punya orang tua dengan type biological
      * - Jika sudah punya biological father dan biological mother, return false
      * - Selain itu return true (bisa tambah step parent / adoptive parent)
-     * 
+     *
      * CATATAN: Ini berlaku untuk SEMUA orang, termasuk pasangan (spouse)
      * karena pasangan juga bisa punya orang tua
      */
@@ -390,7 +391,7 @@ class FamilyTreeService
     private function canAddChild(int $personId): bool
     {
         $spouses = $this->getActiveSpouses($personId);
-        
+
         // Cek apakah ada pasangan aktif (belum cerai)
         return count($spouses) > 0;
     }
@@ -404,17 +405,17 @@ class FamilyTreeService
     private function formatPersonCompact(Person $person): array
     {
         return [
-            'id'           => $person->id,
-            'uuid'         => $person->uuid,
-            'person_code'  => $person->person_code,
-            'full_name'    => $person->full_name,
-            'nickname'     => $person->nickname,
-            'gender'       => $person->gender,
-            'birth_date'   => optional($person->birth_date)->format('Y-m-d'),
-            'death_date'   => optional($person->death_date)->format('Y-m-d'),
-            'age'          => $this->calculateAge($person),
-            'is_deceased'  => !is_null($person->death_date),
-            'birth_place'  => $person->birth_place,
+            'id' => $person->id,
+            'uuid' => $person->uuid,
+            'person_code' => $person->person_code,
+            'full_name' => $person->full_name,
+            'nickname' => $person->nickname,
+            'gender' => $person->gender,
+            'birth_date' => optional($person->birth_date)->format('Y-m-d'),
+            'death_date' => optional($person->death_date)->format('Y-m-d'),
+            'age' => $this->calculateAge($person),
+            'is_deceased' => ! is_null($person->death_date),
+            'birth_place' => $person->birth_place,
             'photo_path' => $person->photo_path
             ? url(Storage::url($person->photo_path))
             : null,
@@ -445,15 +446,15 @@ class FamilyTreeService
     private function genderLabel(?string $gender): ?string
     {
         return match ($gender) {
-            'male'   => 'Laki-laki',
+            'male' => 'Laki-laki',
             'female' => 'Perempuan',
-            default  => null,
+            default => null,
         };
     }
 
     private function calculateAge(Person $person): ?int
     {
-        if (!$person->birth_date) {
+        if (! $person->birth_date) {
             return null;
         }
 
@@ -467,7 +468,7 @@ class FamilyTreeService
         $person = Person::where('uuid', $identifier)
             ->first();
 
-        if (!$person) {
+        if (! $person) {
             throw new ModelNotFoundException("Person not found with identifier: {$identifier}");
         }
 
@@ -496,7 +497,7 @@ class FamilyTreeService
                 'active_spouses' => count($this->getActiveSpouses($person->id)),
                 'total_children' => count($this->getChildren($person->id)),
                 'has_both_parents' => $this->hasBothParents($person->id),
-            ]
+            ],
         ];
     }
 
@@ -506,6 +507,7 @@ class FamilyTreeService
     private function hasBothParents(int $personId): bool
     {
         $parents = $this->getParentsData($personId);
+
         return $parents['father'] !== null && $parents['mother'] !== null;
     }
 
@@ -515,7 +517,7 @@ class FamilyTreeService
     public function getFamilyTreeStats(string $identifier): array
     {
         $person = $this->findPersonOrFail($identifier);
-        
+
         $nodes = [];
         $visited = [];
         $this->collectNodes($person->id, $nodes, $visited, 2);
