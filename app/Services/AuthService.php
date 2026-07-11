@@ -113,6 +113,10 @@ class AuthService
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'permissions' => [
+                // 'can_add_activity' => true,
+                'can_view_children_activity' => $user->hasRole('parent'),
+            ],
         ];
     }
 }

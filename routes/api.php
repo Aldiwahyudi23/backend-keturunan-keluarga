@@ -47,7 +47,13 @@ Route::prefix('auth')
 
 Route::prefix('people')->group(function () {
 
-    Route::post('/', [FamilyTreeController::class, 'store'])->middleware('auth:sanctum');                 // POST   /api/people
+    Route::post('/', [FamilyTreeController::class, 'store'])->middleware('auth:sanctum');  
+        // Person activities
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/activities', [PersonActivityController::class, 'index']);
+        Route::post('/activities', [PersonActivityController::class, 'store']);
+    });
+    // POST   /api/people
     Route::get('/{personId}/spouse-options', [FamilyTreeController::class, 'getSpouseOptionsForChildForm']) // GET /api/people/{personId}/spouse-options
         ->whereNumber('personId')->middleware('auth:sanctum');
     Route::get('{personId}/spouse-options-with-children', [FamilyTreeController::class, 'getSpouseOptionsWithChildren'])->middleware('auth:sanctum');
@@ -75,12 +81,6 @@ Route::prefix('people')->group(function () {
     Route::prefix('marriages')->group(function () {
         Route::put('{marriageId}', [FamilyTreeController::class, 'updateMarriage'])->middleware('auth:sanctum');
         Route::delete('{marriageId}', [FamilyTreeController::class, 'deleteMarriage'])->middleware('auth:sanctum');
-    });
-
-    // Person activities
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('{person}/activities', [PersonActivityController::class, 'index']);
-        Route::post('{person}/activities', [PersonActivityController::class, 'store']);
     });
 
     // ============ Public ==================

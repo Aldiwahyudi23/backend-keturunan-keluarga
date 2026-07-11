@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ManagementUser;
 
 use App\Filament\Resources\ManagementUser\UserResource\Pages;
 use App\Models\User;
+use App\Models\Person;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
@@ -55,6 +56,36 @@ class UserResource extends Resource
                     ->default('user')
                     ->dehydrated(true),
 
+                // 🔥 SELECT PERSON (DITEMBAHKAN DI ATAS)
+                Forms\Components\Select::make('person_id')
+                    ->label('Pilih Person')
+                    ->options(function () {
+                        return Person::whereDoesntHave('user', function ($query) {
+                            // Pastikan hanya person yang belum punya user
+                        })
+                        ->orderBy('full_name')
+                        ->get()
+                        ->pluck('full_name_with_nasab', 'id');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Cari person...')
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        if ($state) {
+                            $person = Person::find($state);
+                            if ($person) {
+                                // Set name otomatis dari full_name person
+                                $set('name', $person->full_name);
+                                
+                                // Opsional: set email otomatis dari full_name (bisa disesuaikan)
+                                // $set('email', str()->slug($person->full_name) . '@example.com');
+                            }
+                        }
+                    })
+                    ->helperText('Pilih person yang akan dijadikan user. Nama akan otomatis terisi dari data person.'),
+
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -100,6 +131,14 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('person.full_name_with_nasab')
+                    ->label('Person')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('person', function (Builder $query) use ($search) {
+                            $query->where('full_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('email')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('roles.name')->label('Roles')->badge(),
@@ -130,22 +169,3 @@ class UserResource extends Resource
         ];
     }
 }
-
-// Di dalam UserPolicy.php, tambahkan logika:
-
-// public function update(User $user, User $model): bool
-// {
-//     // 1. Cek dulu apakah user login punya permission dasar untuk update
-//     if (!$user->can('update_management::user::user')) {
-//         return false;
-//     }
-
-//     // 2. Jika user yang akan diedit ($model) adalah Super Admin
-//     if ($model->hasRole('super_admin')) {
-//         // Hanya izinkan jika yang mengedit ($user) juga Super Admin
-//         return $user->hasRole('super_admin');
-//     }
-
-//     // 3. Jika bukan Super Admin yang diedit, izinkan (karena poin 1 sudah terpenuhi)
-//     return true;
-// }

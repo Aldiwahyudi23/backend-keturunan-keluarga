@@ -26,6 +26,7 @@ class User extends Authenticatable
         'password',
         'type',
         'is_active',
+        'person_id'
     ];
 
     /**
@@ -79,5 +80,10 @@ class User extends Authenticatable
     public function updatedBookSections(): HasMany
     {
         return $this->hasMany(BookSection::class, 'updated_by');
+    }
+
+    public function person()
+    {
+        return $this->belongsTo(Person::class);
     }
 }

@@ -15,14 +15,20 @@ class PersonActivityController extends Controller
         protected PersonActivityService $service
     ) {}
 
-    public function index(Person $person): JsonResponse
+    public function index(Person $person, Request $request): JsonResponse
     {
         try {
-            $activities = $this->service->getByPerson($person);
+            $data = $this->service->getByParent(
+                $request->user(),
+                $request->integer('child_id'),
+                $request->input('date_from'),
+                $request->input('date_to'),
+                10
+            );
 
             return response()->json([
                 'success' => true,
-                'data' => $activities,
+                'data' => $data,
             ]);
 
         } catch (\Throwable $e) {
@@ -33,9 +39,18 @@ class PersonActivityController extends Controller
         }
     }
 
-    public function store(Request $request, Person $person): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         try {
+
+            $person = $request->user()->person;
+
+            if (!$person) {
+                return response()->json([
+                    'message' => 'Akun belum terhubung dengan data anggota keluarga.'
+                ], 422);
+            }
+
             $validated = $request->validate([
                 'description' => 'required|string|max:1000',
                 'can_parent_view' => 'boolean',

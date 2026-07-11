@@ -66,6 +66,11 @@ class Person extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
+
     /**
      * Relasi ke parent biologis perempuan (Ibu).
      */
